@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2025 PassMark Scraper Contributors
+Copyright (c) 2025 Łukasz Pełka
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,23 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-## Third-Party Data Notice
-
-This software scrapes data from PassMark Software (https://www.passmark.com).
-All benchmark data is copyrighted by PassMark Software Pty Ltd.
-
-This software is provided for personal and educational use only. Users must
-comply with PassMark's Terms of Service. The authors of this software are
-not affiliated with PassMark Software.
-
-Use of PassMark data should be:
-- For personal, non-commercial purposes
-- With proper attribution to PassMark
-- In compliance with their Terms of Service
-- Respectful of their robots.txt and rate limits
-
-For commercial use of PassMark data, contact PassMark Software directly.
-
