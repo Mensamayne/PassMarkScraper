@@ -1,0 +1,36 @@
+{
+  "database": {
+    "path": "benchmarks.db"
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 9091
+  },
+  "scraping": {
+    "delay_between_requests_ms": 2000,
+    "max_retries": 3,
+    "timeout_seconds": 30,
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "use_full_lists": true,
+    "limits": {
+      "cpu": -1,
+      "gpu": -1,
+      "ram": -1,
+      "storage": -1
+    },
+    "include_workstation": false
+  },
+  "sources": {
+    "cpu_url": "https://www.cpubenchmark.net/cpu_list.php",
+    "gpu_url": "https://www.videocardbenchmark.net/gpu_list.php",
+    "ram_url": "https://www.memorybenchmark.net/ram_list.php",
+    "storage_url": "https://www.harddrivebenchmark.net/hdd_list.php"
+  },
+  "scheduler": {
+    "enabled": false,
+    "scrape_time": "03:00",
+    "scrape_days": "sunday",
+    "timezone": "UTC"
+  }
+}
+

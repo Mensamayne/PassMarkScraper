@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/*.log
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation (not needed in container)
+docs/
+*.md
+
+# Tests
+test_*.py
+*_test.py
+pytest.ini
+.pytest_cache/
+
+# Temporary files
+*.tmp
+temp_*.html
+temp_*.py
+
+# OS
+.DS_Store
+Thumbs.db
+

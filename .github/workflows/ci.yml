@@ -1,0 +1,107 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install flake8 black mypy
+          pip install -r requirements.txt
+      
+      - name: Run flake8
+        run: flake8 app/ --max-line-length=100 --ignore=E402,W503
+        continue-on-error: true
+      
+      - name: Check formatting with black
+        run: black --check app/
+        continue-on-error: true
+      
+      - name: Type checking with mypy
+        run: mypy app/ --ignore-missing-imports
+        continue-on-error: true
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+      
+      - name: Run pytest
+        run: |
+          pip install pytest pytest-asyncio pytest-cov
+          pytest --cov=app --cov-report=xml
+        continue-on-error: true
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+
+  docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        run: docker-compose build
+      
+      - name: Test Docker container
+        run: |
+          docker-compose up -d
+          sleep 10
+          curl -f http://localhost:9091/health || exit 1
+          docker-compose down
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+        continue-on-error: true
+      
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
+

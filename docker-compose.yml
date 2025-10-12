@@ -1,0 +1,34 @@
+services:
+  passmark-api:
+    build: .
+    container_name: passmark-scraper
+    ports:
+      - "9091:9091"
+    volumes:
+      # Persist database
+      - ./benchmarks.db:/app/benchmarks.db
+      # Persist logs
+      - ./logs:/app/logs
+      # Optional: config override
+      - ./config:/app/config:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+networks:
+  default:
+    name: passmark-network

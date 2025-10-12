@@ -1,0 +1,22 @@
+# PassMark Scraper Dependencies
+# Python 3.11+
+
+# FastAPI & Server
+fastapi==0.115.0
+uvicorn[standard]==0.31.0
+pydantic==2.9.2
+python-multipart==0.0.12
+
+# Web Scraping
+playwright==1.48.0
+beautifulsoup4==4.12.3
+lxml==5.3.0
+
+# HTTP Requests
+requests==2.32.3
+
+# Configuration
+python-dotenv==1.0.1
+
+# Scheduler
+APScheduler==3.10.4
