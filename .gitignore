@@ -213,5 +213,3 @@ backups/
 logs/*.log
 temp_*.html
 temp_*.py
-test_*.py
-*_test.py
