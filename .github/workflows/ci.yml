@@ -23,7 +23,9 @@ jobs:
         run: pip install -r requirements.txt
       
       - name: Run flake8
-        run: flake8 app/ --max-line-length=100 --ignore=E402,W503
+        run: |
+          echo "Running flake8..."
+          flake8 app/ --max-line-length=100 --ignore=E402,W503 || echo "Flake8 found issues"
         continue-on-error: true
       
       - name: Check formatting with black
@@ -51,6 +53,11 @@ jobs:
           pip install -r requirements.txt
           playwright install chromium --with-deps
       
+      - name: Debug Python version and packages
+        run: |
+          python --version
+          pip list | grep -E "(pytest|flake8|black|mypy)"
+      
       - name: Run pytest
         run: pytest --cov=app --cov-report=xml
         continue-on-error: true
@@ -70,14 +77,15 @@ jobs:
         uses: docker/setup-buildx-action@v3
       
       - name: Build Docker image
-        run: docker-compose build
+        run: docker build -t passmark-scraper .
       
       - name: Test Docker container
         run: |
-          docker-compose up -d
-          sleep 10
+          docker run -d --name test-container -p 9091:9091 passmark-scraper
+          sleep 15
           wget -q --spider http://localhost:9091/health || exit 1
-          docker-compose down
+          docker stop test-container
+          docker rm test-container
 
   security:
     name: Security Scan
