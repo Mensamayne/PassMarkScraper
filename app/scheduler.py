@@ -104,8 +104,8 @@ def scheduled_scrape_all():
 
                 if response.status_code == 200:
                     result = response.json()
-                    saved = result.get('saved', 0)
-                    skipped = result.get('skipped', 0)
+                    saved = result.get("saved", 0)
+                    skipped = result.get("skipped", 0)
                     logger.info(f"{comp_type}: Saved {saved}, Skipped {skipped}")
                 else:
                     logger.error(f"{comp_type}: HTTP {response.status_code}")
