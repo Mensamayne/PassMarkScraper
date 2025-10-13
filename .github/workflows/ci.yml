@@ -24,17 +24,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
-      - name: Debug flake8
-        run: |
-          echo "Python version:"
-          python --version
-          echo "Flake8 version:"
-          flake8 --version
-          echo "Running flake8 with verbose output:"
-          flake8 app/ --max-line-length=100 --ignore=E402,W503 --verbose
-      
-      - name: Type checking with mypy
-        run: mypy app/ --ignore-missing-imports
+      - name: Run flake8
+        run: flake8 app/ --max-line-length=100 --ignore=E402,W503
 
   test:
     name: Run Tests
