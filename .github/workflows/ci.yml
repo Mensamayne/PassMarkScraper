@@ -20,9 +20,7 @@ jobs:
           python-version: '3.11'
       
       - name: Install dependencies
-        run: |
-          pip install flake8 black mypy
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
       
       - name: Run flake8
         run: flake8 app/ --max-line-length=100 --ignore=E402,W503
@@ -51,12 +49,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          playwright install chromium
+          playwright install chromium --with-deps
       
       - name: Run pytest
-        run: |
-          pip install pytest pytest-asyncio pytest-cov
-          pytest --cov=app --cov-report=xml
+        run: pytest --cov=app --cov-report=xml
         continue-on-error: true
       
       - name: Upload coverage
@@ -80,7 +76,7 @@ jobs:
         run: |
           docker-compose up -d
           sleep 10
-          curl -f http://localhost:9091/health || exit 1
+          wget -q --spider http://localhost:9091/health || exit 1
           docker-compose down
 
   security:
