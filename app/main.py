@@ -10,15 +10,35 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import logging
 
-from app.models import ScrapeResult
+from app.models import (
+    ScrapeResult,
+    PairingAnalysisRequest,
+    PairingAnalysisResponse,
+    CategoryAnalysis,
+    RecommendPairingRequest,
+    RecommendPairingResponse,
+    ComponentRecommendation,
+    GamingProfileRequest,
+    GamingProfileResponse,
+    GameCategoryPerformance,
+    PerformanceEstimateResponse,
+    BenchmarkResponse,
+)
 from app.scraper import scrape_single_component
 from app.list_scraper import scrape_top_components
 from app.page_analyzer import analyze_component_page
 from app.database import Database
-from app.filters import categorize_component
+from app.filters import categorize_component, is_desktop_component
 from app.normalizer import normalize_name, normalize_component_score, get_tier
 from app.backup import create_backup, list_backups, restore_backup
 from app.scrape_status import get_status
+from app.recommendation import analyze_pairing, recommend_components
+from app.gaming_profiles import (
+    GAME_CATEGORIES,
+    get_performance_tier_for_resolution,
+    estimate_fps,
+)
+from app.power_analysis import estimate_system_power, calculate_monthly_cost
 from app.scheduler import (
     init_scheduler,
     get_scheduler_status,
@@ -172,6 +192,52 @@ async def search_benchmark(
             return {"found": False, "error": "not_found"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search error: {str(e)}")
+
+
+@app.post("/api/search-enhanced")
+async def search_enhanced(request: dict):
+    """
+    Enhanced search with fuzzy matching and chipset extraction.
+    
+    Request body:
+    {
+        "query": "INNO3D RTX5080 ICHILL FROSTBITE PRO 16GB",
+        "component_type": "gpu"
+    }
+    
+    Response:
+    {
+        "matches": [
+            {
+                "name": "GeForce RTX 5080",
+                "passmark_score": 36156,
+                "normalized_score": 100,
+                "confidence": 0.95,
+                "match_type": "chipset_extracted"
+            }
+        ],
+        "fallback_used": false
+    }
+    """
+    try:
+        query = request.get("query", "")
+        component_type = request.get("component_type", "").upper()
+        
+        if not query:
+            raise HTTPException(status_code=400, detail="Query parameter is required")
+        
+        # Use enhanced search from database
+        matches = db.search_enhanced(query, component_type)
+        
+        return {
+            "matches": matches,
+            "fallback_used": len(matches) == 0,
+            "query": query,
+            "component_type": component_type
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Enhanced search error: {str(e)}")
 
 
 @app.get("/debug/top-list")
@@ -343,7 +409,14 @@ async def list_components(
         /list?type=GPU&limit=10&category=consumer
     """
     try:
-        components = db.get_top_components(type.upper(), limit, category)
+        components = db.get_top_components(type.upper(), limit * 2, category)  # Get 2x to account for filtering
+        
+        # Runtime filter to exclude mobile/laptop components
+        if category == "consumer":
+            components = [
+                c for c in components
+                if is_desktop_component(c.get("name", ""), type.upper())
+            ][:limit]  # Apply limit after filtering
 
         return {
             "type": type.upper(),
@@ -468,6 +541,8 @@ async def get_config():
         "api": cfg.get("api", {}),
         "scraping": cfg.get("scraping", {}),
         "sources": cfg.get("sources", {}),
+        "scheduler": cfg.get("scheduler", {}),
+        "recommendation": cfg.get("recommendation", {}),
     }
 
 
@@ -593,6 +668,514 @@ async def scheduler_stop():
         raise HTTPException(status_code=500, detail=f"Failed to stop scheduler: {str(e)}")
 
 
+@app.post("/analyze-pairing")
+async def analyze_cpu_gpu_pairing(request: PairingAnalysisRequest):
+    """
+    Analyze CPU+GPU pairing for bottlenecks and balance.
+
+    Example:
+        POST /analyze-pairing
+        {"cpu": "Ryzen 7 7800X3D", "gpu": "RTX 4070"}
+    """
+    try:
+        # Get config for suggestions
+        rec_config = config.get_config().get("recommendation", {})
+        enable_suggestions = rec_config.get("enable_suggestions", True)
+        max_suggestions = rec_config.get("max_suggestions", 3)
+
+        # Search for CPU
+        cpu_result = db.search_component(request.cpu, "CPU")
+        if not cpu_result:
+            # Provide suggestions if enabled
+            if enable_suggestions:
+                similar = db.search_enhanced(request.cpu, "CPU")[:max_suggestions]
+                suggestions = [s["name"] for s in similar] if similar else []
+                raise HTTPException(
+                    status_code=404,
+                    detail={
+                        "error": "CPU not found",
+                        "query": request.cpu,
+                        "suggestions": suggestions,
+                        "message": f"Did you mean: {', '.join(suggestions[:2])}" if suggestions else "Try a different search"
+                    }
+                )
+            else:
+                raise HTTPException(
+                    status_code=404, detail=f"CPU not found: {request.cpu}"
+                )
+
+        # Search for GPU
+        gpu_result = db.search_component(request.gpu, "GPU")
+        if not gpu_result:
+            # Provide suggestions if enabled
+            if enable_suggestions:
+                similar = db.search_enhanced(request.gpu, "GPU")[:max_suggestions]
+                suggestions = [s["name"] for s in similar] if similar else []
+                raise HTTPException(
+                    status_code=404,
+                    detail={
+                        "error": "GPU not found",
+                        "query": request.gpu,
+                        "suggestions": suggestions,
+                        "message": f"Did you mean: {', '.join(suggestions[:2])}" if suggestions else "Try a different search"
+                    }
+                )
+            else:
+                raise HTTPException(
+                    status_code=404, detail=f"GPU not found: {request.gpu}"
+                )
+
+        # Perform analysis
+        analysis = analyze_pairing(cpu_result, gpu_result)
+
+        # Build response with proper models
+        cpu_response = BenchmarkResponse(
+            name=cpu_result["name"],
+            passmark_score=cpu_result["passmark_score"],
+            normalized_score=cpu_result["normalized_score"],
+            tier=cpu_result["tier"],
+        )
+
+        gpu_response = BenchmarkResponse(
+            name=gpu_result["name"],
+            passmark_score=gpu_result["passmark_score"],
+            normalized_score=gpu_result["normalized_score"],
+            tier=gpu_result["tier"],
+        )
+
+        # Convert category analyses to models
+        by_category = {}
+        for cat_name, cat_data in analysis["by_category"].items():
+            by_category[cat_name] = CategoryAnalysis(**cat_data)
+
+        return PairingAnalysisResponse(
+            cpu=cpu_response,
+            gpu=gpu_response,
+            overall_balance_score=analysis["overall_balance_score"],
+            overall_verdict=analysis["overall_verdict"],
+            overall_bottleneck=analysis.get("overall_bottleneck"),
+            by_category=by_category,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Pairing analysis error: {e}")
+        raise HTTPException(status_code=500, detail=f"Analysis error: {str(e)}")
+
+
+@app.get("/recommend-pairing")
+async def recommend_pairing(
+    cpu: str = Query(None, description="CPU name (provide either CPU or GPU)"),
+    gpu: str = Query(None, description="GPU name (provide either CPU or GPU)"),
+    game_focus: str = Query(
+        None,
+        description="Game category focus: esport, aaa_gpu, balanced, simulation",
+    ),
+    limit: int = Query(5, description="Max recommendations"),
+):
+    """
+    Recommend compatible CPU or GPU based on what you have.
+
+    Examples:
+        /recommend-pairing?cpu=7800X3D&game_focus=aaa_gpu
+        /recommend-pairing?gpu=RTX4090&game_focus=simulation
+    """
+    try:
+        if not cpu and not gpu:
+            raise HTTPException(
+                status_code=400, detail="Must provide either cpu or gpu parameter"
+            )
+
+        if cpu and gpu:
+            raise HTTPException(
+                status_code=400, detail="Provide only one component (cpu OR gpu)"
+            )
+
+        # Validate game_focus
+        if game_focus and game_focus not in GAME_CATEGORIES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid game_focus. Must be one of: {', '.join(GAME_CATEGORIES.keys())}",
+            )
+
+        # Determine base component
+        if cpu:
+            base_result = db.search_component(cpu, "CPU")
+            if not base_result:
+                raise HTTPException(status_code=404, detail=f"CPU not found: {cpu}")
+            component_type = "CPU"
+            recommend_type = "GPU"
+        else:
+            base_result = db.search_component(gpu, "GPU")
+            if not base_result:
+                raise HTTPException(status_code=404, detail=f"GPU not found: {gpu}")
+            component_type = "GPU"
+            recommend_type = "CPU"
+
+        # Get all components of the type we're recommending (desktop consumer only)
+        all_candidates = db.get_top_components(recommend_type, limit=4000, category='consumer')
+
+        # Get recommendations
+        recommendations = recommend_components(
+            base_result, component_type, all_candidates, game_focus, limit
+        )
+
+        # Build response
+        base_component = BenchmarkResponse(
+            name=base_result["name"],
+            passmark_score=base_result["passmark_score"],
+            normalized_score=base_result["normalized_score"],
+            tier=base_result["tier"],
+        )
+
+        rec_list = []
+        for rec in recommendations:
+            comp = rec["component"]
+            match_score = rec["match_score"]
+
+            # Build balance description
+            if match_score >= 90:
+                balance_desc = "Perfect match"
+            elif match_score >= 80:
+                balance_desc = "Excellent balance"
+            elif match_score >= 70:
+                balance_desc = "Very good balance"
+            else:
+                balance_desc = "Good balance"
+
+            rec_list.append(
+                ComponentRecommendation(
+                    name=comp["name"],
+                    passmark_score=comp["passmark_score"],
+                    normalized_score=comp["normalized_score"],
+                    tier=comp["tier"],
+                    match_score=match_score,
+                    balance_description=balance_desc,
+                )
+            )
+
+        return RecommendPairingResponse(
+            base_component=base_component,
+            base_component_type=component_type,
+            game_focus=game_focus,
+            recommendations=rec_list,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Recommendation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Recommendation error: {str(e)}")
+
+
+@app.post("/gaming-profile")
+async def gaming_profile(request: GamingProfileRequest):
+    """
+    Get comprehensive gaming performance profile for CPU+GPU combo.
+
+    Example:
+        POST /gaming-profile
+        {"cpu": "7800X3D", "gpu": "RTX4070", "resolution": "1440p"}
+    """
+    try:
+        # Validate resolution
+        if request.resolution not in ["1080p", "1440p", "4K"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Resolution must be one of: 1080p, 1440p, 4K",
+            )
+
+        # Search components
+        cpu_result = db.search_component(request.cpu, "CPU")
+        if not cpu_result:
+            raise HTTPException(
+                status_code=404, detail=f"CPU not found: {request.cpu}"
+            )
+
+        gpu_result = db.search_component(request.gpu, "GPU")
+        if not gpu_result:
+            raise HTTPException(
+                status_code=404, detail=f"GPU not found: {request.gpu}"
+            )
+
+        # Analyze pairing
+        analysis = analyze_pairing(cpu_result, gpu_result)
+
+        # Build performance by category
+        performance_by_category = {}
+        for cat_name, category in GAME_CATEGORIES.items():
+            cat_analysis = analysis["by_category"][cat_name]
+
+            # Build FPS estimate string
+            if cat_analysis["performance"] == "excellent":
+                if cat_name == "esport":
+                    fps_estimate = "300-500+ FPS"
+                elif cat_name == "aaa_gpu":
+                    fps_estimate = f"100-120 FPS @ {request.resolution} Ultra"
+                elif cat_name == "balanced":
+                    fps_estimate = f"120-144 FPS @ {request.resolution} Ultra"
+                else:  # simulation
+                    fps_estimate = f"60-90 FPS @ {request.resolution}"
+            elif cat_analysis["performance"] == "very_good":
+                if cat_name == "esport":
+                    fps_estimate = "200-300+ FPS"
+                elif cat_name == "aaa_gpu":
+                    fps_estimate = f"80-100 FPS @ {request.resolution} Ultra"
+                elif cat_name == "balanced":
+                    fps_estimate = f"90-120 FPS @ {request.resolution} Ultra"
+                else:
+                    fps_estimate = f"45-60 FPS @ {request.resolution}"
+            else:
+                fps_estimate = "Performance may vary"
+
+            # Settings recommendation
+            if cat_analysis["balance_score"] >= 85:
+                settings = "Ultra"
+            elif cat_analysis["balance_score"] >= 70:
+                settings = "High-Ultra"
+            elif cat_analysis["balance_score"] >= 50:
+                settings = "Medium-High"
+            else:
+                settings = "Medium"
+
+            performance_by_category[cat_name] = GameCategoryPerformance(
+                games=category["examples"],
+                fps_estimate=fps_estimate,
+                settings=settings,
+                bottleneck=cat_analysis["bottleneck"],
+                cpu_utilization=f"{cat_analysis['cpu_utilization']}%",
+                gpu_utilization=f"{cat_analysis['gpu_utilization']}%",
+            )
+
+        # Build upgrade recommendations
+        upgrade_recommendations = {}
+        if analysis["overall_bottleneck"] == "cpu":
+            upgrade_recommendations["priority"] = "CPU"
+            upgrade_recommendations[
+                "reason"
+            ] = "CPU is bottlenecking GPU performance"
+        elif analysis["overall_bottleneck"] == "gpu":
+            upgrade_recommendations["priority"] = "GPU"
+            upgrade_recommendations[
+                "reason"
+            ] = "GPU is bottlenecking overall performance"
+        else:
+            upgrade_recommendations["priority"] = "None"
+            upgrade_recommendations["reason"] = "System is well balanced"
+
+        # Response models
+        cpu_response = BenchmarkResponse(
+            name=cpu_result["name"],
+            passmark_score=cpu_result["passmark_score"],
+            normalized_score=cpu_result["normalized_score"],
+            tier=cpu_result["tier"],
+        )
+
+        gpu_response = BenchmarkResponse(
+            name=gpu_result["name"],
+            passmark_score=gpu_result["passmark_score"],
+            normalized_score=gpu_result["normalized_score"],
+            tier=gpu_result["tier"],
+        )
+
+        return GamingProfileResponse(
+            cpu=cpu_response,
+            gpu=gpu_response,
+            resolution=request.resolution,
+            overall_balance_score=analysis["overall_balance_score"],
+            overall_verdict=analysis["overall_verdict"],
+            performance_by_category=performance_by_category,
+            upgrade_recommendations=upgrade_recommendations,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Gaming profile error: {e}")
+        raise HTTPException(status_code=500, detail=f"Profile error: {str(e)}")
+
+
+@app.get("/estimate-performance")
+async def estimate_performance(
+    component: str = Query(..., description="Component name"),
+    type: str = Query(..., description="Component type (CPU or GPU)"),
+):
+    """
+    Estimate gaming performance for a component.
+
+    Example:
+        /estimate-performance?component=RTX4070&type=GPU
+    """
+    try:
+        # Validate type
+        if type.upper() not in ["CPU", "GPU"]:
+            raise HTTPException(
+                status_code=400, detail="Type must be CPU or GPU"
+            )
+
+        # Search component
+        result = db.search_component(component, type.upper())
+        if not result:
+            raise HTTPException(
+                status_code=404, detail=f"{type.upper()} not found: {component}"
+            )
+
+        # Build performance estimates (use normalized score 0-100)
+        estimated_performance = {
+            "1080p_low": f"{estimate_fps(result['normalized_score'], '1080p', 'low', 'balanced')}+ FPS",
+            "1080p_medium": f"{estimate_fps(result['normalized_score'], '1080p', 'medium', 'balanced')}+ FPS",
+            "1080p_high": f"{estimate_fps(result['normalized_score'], '1080p', 'high', 'balanced')}+ FPS",
+            "1080p_ultra": f"{estimate_fps(result['normalized_score'], '1080p', 'ultra', 'balanced')}+ FPS",
+            "1440p_high": f"{estimate_fps(result['normalized_score'], '1440p', 'high', 'balanced')}+ FPS",
+            "1440p_ultra": f"{estimate_fps(result['normalized_score'], '1440p', 'ultra', 'balanced')}+ FPS",
+            "4K_high": f"{estimate_fps(result['normalized_score'], '4K', 'high', 'balanced')}+ FPS",
+            "4K_ultra": f"{estimate_fps(result['normalized_score'], '4K', 'ultra', 'balanced')}+ FPS",
+        }
+
+        # Gaming tiers
+        gaming_tiers = {
+            "1080p": get_performance_tier_for_resolution(
+                result["normalized_score"], "1080p"
+            ),
+            "1440p": get_performance_tier_for_resolution(
+                result["normalized_score"], "1440p"
+            ),
+            "4K": get_performance_tier_for_resolution(
+                result["normalized_score"], "4K"
+            ),
+        }
+
+        return PerformanceEstimateResponse(
+            component_name=result["name"],
+            component_type=type.upper(),
+            passmark_score=result["passmark_score"],
+            normalized_score=result["normalized_score"],
+            tier=result["tier"],
+            estimated_performance=estimated_performance,
+            gaming_tiers=gaming_tiers,
+            note="Estimates based on synthetic benchmarks and real-world correlations. Actual performance varies by game optimization.",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Performance estimation error: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Estimation error: {str(e)}"
+        )
+
+
+@app.get("/game-categories")
+async def get_game_categories():
+    """
+    Get list of all game categories with their characteristics.
+
+    Example:
+        /game-categories
+    """
+    categories = {}
+    for name, data in GAME_CATEGORIES.items():
+        categories[name] = {
+            "display_name": data["display_name"],
+            "description": data["description"],
+            "cpu_importance": f"{int(data['cpu_importance'] * 100)}%",
+            "gpu_importance": f"{int(data['gpu_importance'] * 100)}%",
+            "weight_in_analysis": f"{int(data['weight'] * 100)}%",
+            "examples": data["examples"],
+        }
+
+    return {"categories": categories}
+
+
+@app.post("/power-analysis")
+async def power_analysis_endpoint(request: PairingAnalysisRequest):
+    """
+    Analyze power consumption and cooling requirements for CPU+GPU pairing.
+
+    Example:
+        POST /power-analysis
+        {"cpu": "Ryzen 7 7800X3D", "gpu": "RTX 4070"}
+    """
+    try:
+        # Search for CPU
+        cpu_result = db.search_component(request.cpu, "CPU")
+        if not cpu_result:
+            raise HTTPException(
+                status_code=404, detail=f"CPU not found: {request.cpu}"
+            )
+
+        # Search for GPU
+        gpu_result = db.search_component(request.gpu, "GPU")
+        if not gpu_result:
+            raise HTTPException(
+                status_code=404, detail=f"GPU not found: {request.gpu}"
+            )
+
+        # Perform power analysis
+        power_data = estimate_system_power(cpu_result, gpu_result)
+        
+        # Add cost estimates (default 4 hours/day, $0.15/kWh)
+        gaming_power_cost = calculate_monthly_cost(
+            power_data["estimated_gaming_power"],
+            hours_per_day=4.0,
+            cost_per_kwh=0.15
+        )
+        
+        idle_power_cost = calculate_monthly_cost(
+            power_data["estimated_idle_power"],
+            hours_per_day=20.0,  # 20 hours idle per day
+            cost_per_kwh=0.15
+        )
+
+        return {
+            "cpu": {
+                "name": cpu_result["name"],
+                "tdp": power_data["cpu_tdp"]
+            },
+            "gpu": {
+                "name": gpu_result["name"],
+                "tdp": power_data["gpu_tdp"]
+            },
+            "power_consumption": {
+                "total_tdp": power_data["total_tdp"],
+                "idle_power": power_data["estimated_idle_power"],
+                "gaming_power": power_data["estimated_gaming_power"],
+                "max_power": power_data["estimated_max_power"],
+            },
+            "psu_recommendation": {
+                "recommended_wattage": power_data["recommended_psu"],
+                "wattage_range": power_data["recommended_psu_range"],
+                "efficiency_rating": power_data["efficiency_rating"],
+            },
+            "thermal": {
+                "heat_class": power_data["heat_class"],
+                "cooling_recommendation": power_data["cooling_recommendation"],
+            },
+            "operating_costs": {
+                "gaming": gaming_power_cost,
+                "idle": idle_power_cost,
+                "combined_monthly_usd": round(
+                    gaming_power_cost["monthly_cost_usd"] + 
+                    idle_power_cost["monthly_cost_usd"], 
+                    2
+                ),
+                "combined_yearly_usd": round(
+                    gaming_power_cost["yearly_cost_usd"] + 
+                    idle_power_cost["yearly_cost_usd"], 
+                    2
+                ),
+            },
+            "note": "Estimates based on typical usage. Actual consumption may vary."
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Power analysis error: {e}")
+        raise HTTPException(status_code=500, detail=f"Analysis error: {str(e)}")
+
+
 @app.get("/")
 async def root():
     """Serve the main HTML page."""
@@ -602,21 +1185,26 @@ async def root():
     else:
         return {
             "name": "PassMark Scraper API",
-            "version": "1.0.0",
+            "version": "2.0.0",
             "status": "Production Ready",
             "db_count": db.get_count(),
+            "features": {
+                "benchmarks": "28k+ components with PassMark scores",
+                "comparison": "Compare component performance",
+                "recommendations": "CPU+GPU pairing recommendations",
+                "bottleneck_analysis": "Intelligent bottleneck detection",
+                "gaming_profiles": "Performance estimates per game type",
+            },
             "endpoints": {
                 "health": "/health",
                 "docs": "/docs",
-                "config": "GET /config - View configuration",
-                "config_update": "PUT /config - Update configuration",
-                "config_reload": "POST /config/reload - Reload configuration",
-                "search": "/search?name=<component>&type=<CPU|GPU> - Search",
-                "compare": "/compare?component1=gtx+1080ti&component2=rtx+3080 - Compare",
-                "list": "/list?type=<CPU|GPU>&limit=10&category=consumer - List components",
-                "scrape_and_save": "POST /scrape-and-save?type=<type>&limit=100 - Scrape and save",
-                "debug_scrape_one": "/debug/scrape-one?url=<passmark_url>",
-                "debug_top_list": "/debug/top-list?type=<CPU|GPU>&limit=10",
-                "debug_analyze_page": "/debug/analyze-page?url=<passmark_url>",
+                "search": "/search?name=<component>&type=<CPU|GPU>",
+                "compare": "/compare?component1=<name>&component2=<name>",
+                "analyze_pairing": "POST /analyze-pairing - Analyze CPU+GPU pairing",
+                "recommend_pairing": "/recommend-pairing?cpu=<name> - Get GPU recommendations",
+                "gaming_profile": "POST /gaming-profile - Get gaming performance profile",
+                "estimate_performance": "/estimate-performance?component=<name>&type=<CPU|GPU>",
+                "power_analysis": "POST /power-analysis - PSU & thermal analysis",
+                "game_categories": "/game-categories - List game categories",
             },
         }

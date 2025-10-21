@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] - 2025-10-20
+
+### 🎮 Added - Gaming & Recommendation System
+
+#### New Features
+- **Bottleneck Analysis**: Intelligent CPU+GPU pairing analysis with bottleneck detection
+- **Game Categories**: Analysis across 4 game types (E-sport, AAA GPU-heavy, Balanced, Simulation)
+- **Smart Recommendations**: Component pairing recommendations based on game focus
+- **Gaming Profiles**: Complete performance breakdown by game category and resolution
+- **Performance Estimates**: FPS predictions for different games, resolutions, and settings
+- **Balance Scoring**: 0-100 compatibility score for CPU+GPU pairings
+- **Minimum Requirements**: Prevents absurd pairings (e.g., Threadripper + GTX 1030)
+
+#### New API Endpoints
+- `POST /analyze-pairing` - Analyze CPU+GPU compatibility
+- `GET /recommend-pairing` - Get component recommendations
+- `POST /gaming-profile` - Complete gaming performance profile
+- `GET /estimate-performance` - Performance estimates for single component
+- `GET /game-categories` - List all game categories
+
+#### Core Components
+- `app/recommendation.py` - Recommendation engine with balancing algorithms
+- `app/gaming_profiles.py` - Game category configs and performance estimation
+- New Pydantic models for recommendation endpoints
+- Comprehensive test suite (22 new tests)
+- Example demo script (`examples/recommendation_demo.py`)
+
+#### Technical Details
+- Multi-tier validation system (minimum requirements, tier matching, score balance)
+- Weighted analysis across game categories (25% E-sport, 35% AAA, 25% Balanced, 15% Simulation)
+- FPS estimation based on PassMark scores with resolution/settings multipliers
+- CPU/GPU utilization prediction per game category
+
+### Changed
+- Updated README with new features and examples
+- API version bumped to 2.0.0
+- Enhanced root endpoint with feature listing
+- Updated main.py with 5 new endpoints
+
+### Documentation
+- Created `docs/BOTTLENECK_RECOMMENDATION_SPEC.md` - Complete specification
+- Updated README with gaming analysis examples
+- Added example demo script
+
+---
+
 ## [1.0.0] - 2025-10-12
 
 ### Added - Initial Release

@@ -3,14 +3,14 @@ services:
     build: .
     container_name: passmark-scraper
     ports:
-      - "9091:9091"
+      - "5000:9091"  # External:Internal - Java backend connects on 5000
     volumes:
       # Persist database
       - ./benchmarks.db:/app/benchmarks.db
       # Persist logs
       - ./logs:/app/logs
-      # Optional: config override
-      - ./config:/app/config:ro
+      # Config directory (read-write for saving changes)
+      - ./config:/app/config
     environment:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped

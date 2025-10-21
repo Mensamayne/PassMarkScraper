@@ -33,7 +33,7 @@
     "timezone": "UTC"
   },
   "recommendation": {
-    "min_match_score": 25,
+    "min_match_score": 21,
     "bottleneck_threshold": 40,
     "max_recommendations": 5,
     "psu_overhead_percent": 30,

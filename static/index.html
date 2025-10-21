@@ -3,424 +3,1432 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PassMark Component Compare</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            color: white;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 2.5rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .card {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            margin-bottom: 20px;
-        }
-
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
-            font-size: 14px;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        button {
-            flex: 1;
-            padding: 14px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #f5f5f5;
-            color: #666;
-        }
-
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
-
-        #result {
-            margin-top: 20px;
-            display: none;
-        }
-
-        .result-header {
-            text-align: center;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-
-        .result-header h2 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-        }
-
-        .winner-badge {
-            background: rgba(255,255,255,0.2);
-            padding: 8px 20px;
-            border-radius: 20px;
-            display: inline-block;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-
-        .comparison-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .component-card {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 12px;
-            border: 3px solid transparent;
-        }
-
-        .component-card.winner {
-            border-color: #667eea;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-        }
-
-        .component-card h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1.2rem;
-        }
-
-        .stat {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .stat:last-child {
-            border-bottom: none;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .stat-value {
-            font-weight: 600;
-            color: #333;
-            font-size: 16px;
-        }
-
-        .tier {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .tier-low { background: #fee; color: #c33; }
-        .tier-mid { background: #ffa; color: #880; }
-        .tier-high { background: #efe; color: #282; }
-        .tier-ultra { background: #eef; color: #338; }
-
-        .summary {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-        }
-
-        .summary-stat {
-            margin: 10px 0;
-            font-size: 18px;
-        }
-
-        .summary-stat strong {
-            color: #667eea;
-            font-size: 24px;
-        }
-
-        .error {
-            background: #fee;
-            color: #c33;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #c33;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-            .comparison-grid {
-                grid-template-columns: 1fr;
-            }
-
-            h1 {
-                font-size: 2rem;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🔍 PassMark Component Compare</h1>
-        
-        <div class="card">
-            <div class="input-group">
-                <label for="component1">Komponent 1</label>
-                <input type="text" id="component1" placeholder="np. GTX 760A, i7-2630UM">
-            </div>
-
-            <div class="input-group">
-                <label for="component2">Komponent 2</label>
-                <input type="text" id="component2" placeholder="np. RTX 3050, i9-8950HK">
-            </div>
-
-            <div class="input-group">
-                <label for="type">Typ komponentu</label>
-                <select id="type">
-                    <option value="">Auto-detect</option>
-                    <option value="CPU">CPU</option>
-                    <option value="GPU">GPU</option>
-                    <option value="RAM">RAM</option>
-                    <option value="STORAGE">Storage</option>
-                </select>
-            </div>
-
-            <div class="button-group">
-                <button class="btn-primary" onclick="compare()">Porównaj</button>
-                <button class="btn-secondary" onclick="clearForm()">Wyczyść</button>
-            </div>
-        </div>
-
-        <div id="result"></div>
-    </div>
-
+    <title>PassMark Dashboard v2.0</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Custom Components CSS -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    
+    <!-- Tailwind Config -->
     <script>
-        async function compare() {
-            const component1 = document.getElementById('component1').value.trim();
-            const component2 = document.getElementById('component2').value.trim();
-            const type = document.getElementById('type').value;
-            const resultDiv = document.getElementById('result');
-
-            if (!component1 || !component2) {
-                resultDiv.innerHTML = '<div class="card error">Proszę wypełnić oba pola z komponentami</div>';
-                resultDiv.style.display = 'block';
-                return;
-            }
-
-            resultDiv.innerHTML = `
-                <div class="card loading">
-                    <div class="spinner"></div>
-                    <p>Szukam komponentów w bazie...</p>
-                </div>
-            `;
-            resultDiv.style.display = 'block';
-
-            try {
-                const params = new URLSearchParams({
-                    component1: component1,
-                    component2: component2
-                });
-                if (type) params.append('type', type);
-
-                const response = await fetch(`http://localhost:9091/compare?${params}`);
-                const data = await response.json();
-
-                if (!data.found) {
-                    let errorMsg = 'Nie znaleziono komponentów';
-                    if (data.error === 'component1_not_found') {
-                        errorMsg = `Nie znaleziono: ${component1}`;
-                    } else if (data.error === 'component2_not_found') {
-                        errorMsg = `Nie znaleziono: ${component2}`;
-                    } else if (data.error === 'both_not_found') {
-                        errorMsg = 'Nie znaleziono żadnego z komponentów';
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#667eea',
+                        secondary: '#764ba2',
                     }
-                    resultDiv.innerHTML = `<div class="card error">${errorMsg}</div>`;
-                    return;
                 }
-
-                displayResult(data);
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="card error">Błąd: ${error.message}</div>`;
             }
         }
-
-        function displayResult(data) {
-            const winner = data.winner === 'component1' ? data.component1 : data.component2;
-            const resultDiv = document.getElementById('result');
-
-            resultDiv.innerHTML = `
-                <div class="card">
-                    <div class="result-header">
-                        <h2>🏆 Zwycięzca: ${winner.name}</h2>
-                        <div class="winner-badge">
-                            ${data.better_by_percent}% szybszy
+    </script>
+</head>
+<body class="bg-gradient-to-br from-purple-500 to-indigo-600 dark:from-gray-900 dark:to-gray-800 min-h-screen" x-data>
+    
+    <!-- Toast Notifications -->
+    <div class="toast-container" x-show="$store.app.toast" x-transition>
+        <div class="toast" :class="$store.app.toast?.type" x-show="$store.app.toast">
+            <span x-text="$store.app.toast?.message"></span>
+        </div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-6 max-w-7xl">
+        
+        <!-- Header -->
+        <header class="mb-8">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 class="text-4xl font-bold text-white mb-2">PassMark Dashboard</h1>
+                    <p class="text-white/80">Gaming Build Optimizer & Bottleneck Analyzer v2.0</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button @click="$store.app.toggleDarkMode()" 
+                            class="p-3 bg-white/10 hover:bg-white/20 rounded-lg transition text-white">
+                        <span x-show="!$store.app.darkMode">🌙</span>
+                        <span x-show="$store.app.darkMode">☀️</span>
+                    </button>
+                    <div class="text-white/80 text-sm">
+                        <span x-text="$store.app.stats.dbCount"></span> components
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Tab Navigation -->
+        <nav class="bg-white dark:bg-gray-800 rounded-xl shadow-lg mb-6 p-2">
+            <div class="flex flex-wrap gap-2">
+                <button @click="$store.app.setTab('dashboard')" 
+                        :class="$store.app.currentTab === 'dashboard' ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'"
+                        class="px-6 py-3 rounded-lg font-semibold transition flex-1 sm:flex-none">
+                    🏠 Dashboard
+                </button>
+                <button @click="$store.app.setTab('analyze')" 
+                        :class="$store.app.currentTab === 'analyze' ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'"
+                        class="px-6 py-3 rounded-lg font-semibold transition flex-1 sm:flex-none">
+                    🎯 Analyze
+                </button>
+                <button @click="$store.app.setTab('recommend')" 
+                        :class="$store.app.currentTab === 'recommend' ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'"
+                        class="px-6 py-3 rounded-lg font-semibold transition flex-1 sm:flex-none">
+                    💡 Recommend
+                </button>
+                <button @click="$store.app.setTab('gaming')" 
+                        :class="$store.app.currentTab === 'gaming' ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'"
+                        class="px-6 py-3 rounded-lg font-semibold transition flex-1 sm:flex-none">
+                    🎮 Gaming
+                </button>
+                <button @click="$store.app.setTab('compare')" 
+                        :class="$store.app.currentTab === 'compare' ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'"
+                        class="px-6 py-3 rounded-lg font-semibold transition flex-1 sm:flex-none">
+                    ⚖️ Compare
+                </button>
+                <button @click="$store.app.setTab('power')" 
+                        :class="$store.app.currentTab === 'power' ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'"
+                        class="px-6 py-3 rounded-lg font-semibold transition flex-1 sm:flex-none">
+                    ⚡ Power
+                </button>
+                <button @click="$store.app.setTab('config')" 
+                        :class="$store.app.currentTab === 'config' ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'"
+                        class="px-6 py-3 rounded-lg font-semibold transition flex-1 sm:flex-none">
+                    ⚙️ Config
+                </button>
+            </div>
+        </nav>
+        
+        <!-- Tab Content Container -->
+        <div class="min-h-[600px]">
+            
+            <!-- DASHBOARD TAB -->
+            <div x-show="$store.app.currentTab === 'dashboard'" x-transition id="dashboard-tab">
+                
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <div class="stat-card">
+                        <div class="stat-card-value" x-text="$store.app.stats.dbCount"></div>
+                        <div class="stat-card-label">Total Components</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-value">4,255</div>
+                        <div class="stat-card-label">CPUs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-value">2,537</div>
+                        <div class="stat-card-label">GPUs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-value" x-text="$store.app.history.length"></div>
+                        <div class="stat-card-label">Recent Analyses</div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <h2 class="text-2xl font-bold text-white mb-4">Quick Actions</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    
+                    <!-- Analyze Build -->
+                    <div class="quick-action-card" @click="$store.app.setTab('analyze')">
+                        <div class="quick-action-icon">🎯</div>
+                        <div class="quick-action-title">Analyze Your Build</div>
+                        <div class="quick-action-description">
+                            Check CPU+GPU pairing for bottlenecks and balance across all game types
                         </div>
                     </div>
-
-                    <div class="comparison-grid">
-                        <div class="component-card ${data.winner === 'component1' ? 'winner' : ''}">
-                            <h3>${data.component1.name}</h3>
-                            <div class="stat">
-                                <span class="stat-label">PassMark Score</span>
-                                <span class="stat-value">${data.component1.passmark_score.toLocaleString()}</span>
+                    
+                    <!-- Get Recommendations -->
+                    <div class="quick-action-card" @click="$store.app.setTab('recommend')">
+                        <div class="quick-action-icon">💡</div>
+                        <div class="quick-action-title">Get Recommendations</div>
+                        <div class="quick-action-description">
+                            Find the best CPU or GPU to pair with your current component
+                        </div>
+                    </div>
+                    
+                    <!-- Gaming Profile -->
+                    <div class="quick-action-card" @click="$store.app.setTab('gaming')">
+                        <div class="quick-action-icon">🎮</div>
+                        <div class="quick-action-title">Gaming Profile</div>
+                        <div class="quick-action-description">
+                            Get FPS estimates and performance breakdown by game category
+                        </div>
+                    </div>
+                    
+                    <!-- Power Analysis -->
+                    <div class="quick-action-card" @click="$store.app.setTab('power')">
+                        <div class="quick-action-icon">⚡</div>
+                        <div class="quick-action-title">Power Analysis</div>
+                        <div class="quick-action-description">
+                            PSU requirements, cooling needs, and operating costs
+                        </div>
+                    </div>
+                    
+                    <!-- Configuration -->
+                    <div class="quick-action-card" @click="$store.app.setTab('config')">
+                        <div class="quick-action-icon">⚙️</div>
+                        <div class="quick-action-title">Configuration</div>
+                        <div class="quick-action-description">
+                            Adjust system settings, thresholds, and scraping options
+                        </div>
+                    </div>
+                    
+                    <!-- Compare Components -->
+                    <div class="quick-action-card" @click="$store.app.setTab('compare')">
+                        <div class="quick-action-icon">⚖️</div>
+                        <div class="quick-action-title">Compare Components</div>
+                        <div class="quick-action-description">
+                            Side-by-side comparison of two components
+                        </div>
+                    </div>
+                    
+                    <!-- API Docs -->
+                    <div class="quick-action-card" @click="window.open('/docs', '_blank')">
+                        <div class="quick-action-icon">📚</div>
+                        <div class="quick-action-title">API Documentation</div>
+                        <div class="quick-action-description">
+                            Interactive API documentation and testing interface
+                        </div>
+                    </div>
+                    
+                </div>
+                
+                <!-- Recent Analyses -->
+                <div x-show="$store.app.history.length > 0">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-2xl font-bold text-white">Recent Analyses</h2>
+                        <button @click="$store.app.clearHistory()" 
+                                class="text-white/80 hover:text-white text-sm underline">
+                            Clear History
+                        </button>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                        <template x-for="(entry, index) in $store.app.history.slice(0, 5)" :key="index">
+                            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer"
+                                 @click="$store.app.loadFromHistory(entry)">
+                                <div>
+                                    <div class="font-semibold text-gray-900 dark:text-white">
+                                        <span x-text="entry.cpu"></span> + <span x-text="entry.gpu"></span>
+                                    </div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400" x-text="$store.app.formatDate(entry.timestamp)"></div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="badge" 
+                                          :class="'badge-' + $store.app.getBalanceClass(entry.result?.overall_balance_score || 0)"
+                                          x-text="(entry.result?.overall_balance_score || 0) + '/100'"></span>
+                                    <button class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">↻</button>
+                                </div>
                             </div>
-                            <div class="stat">
-                                <span class="stat-label">Normalized Score</span>
-                                <span class="stat-value">${data.component1.normalized_score}/100</span>
+                        </template>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <!-- ANALYZE PAIRING TAB -->
+            <div x-show="$store.app.currentTab === 'analyze'" x-transition id="analyze-tab">
+                
+                <!-- Input Section -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Select Components</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <!-- CPU Search -->
+                        <div class="relative" x-data="{ cpuQuery: '', showDropdown: false }">
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                CPU Processor
+                            </label>
+                            <input type="text" 
+                                   x-model="cpuQuery"
+                                   @input="$store.app.searchComponents(cpuQuery, 'CPU'); showDropdown = cpuQuery.length > 0"
+                                   @blur="setTimeout(() => showDropdown = false, 200)"
+                                   @focus="showDropdown = cpuQuery.length > 0"
+                                   placeholder="e.g., 7800X3D, i9-14900K..."
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                            
+                            <!-- Selected CPU Display -->
+                            <div x-show="$store.app.selectedCPU && !showDropdown" 
+                                 class="mt-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-semibold text-indigo-900 dark:text-indigo-200" 
+                                          x-text="$store.app.selectedCPU"></span>
+                                    <button @click="$store.app.setSelectedCPU(null); cpuQuery = ''" 
+                                            class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">✕</button>
+                                </div>
                             </div>
-                            <div class="stat">
-                                <span class="stat-label">Tier</span>
-                                <span class="stat-value">
-                                    <span class="tier tier-${data.component1.tier}">${data.component1.tier}</span>
-                                </span>
-                            </div>
-                            <div class="stat">
-                                <span class="stat-label">Category</span>
-                                <span class="stat-value">${data.component1.category || 'N/A'}</span>
+                            
+                            <!-- Autocomplete Dropdown -->
+                            <div x-show="showDropdown && $store.app.searchResults.cpu.length > 0" 
+                                 class="autocomplete-dropdown">
+                                <template x-for="result in $store.app.searchResults.cpu.slice(0, 5)" :key="result.name">
+                                    <div class="autocomplete-item" 
+                                         @click="$store.app.setSelectedCPU(result.name); cpuQuery = result.name; showDropdown = false">
+                                        <div class="autocomplete-item-name" x-text="result.name"></div>
+                                        <div class="autocomplete-item-meta">
+                                            Score: <span x-text="result.normalized_score"></span>/100 | 
+                                            Confidence: <span x-text="Math.round(result.confidence * 100)"></span>%
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
                         </div>
-
-                        <div class="component-card ${data.winner === 'component2' ? 'winner' : ''}">
-                            <h3>${data.component2.name}</h3>
-                            <div class="stat">
-                                <span class="stat-label">PassMark Score</span>
-                                <span class="stat-value">${data.component2.passmark_score.toLocaleString()}</span>
+                        
+                        <!-- GPU Search -->
+                        <div class="relative" x-data="{ gpuQuery: '', showDropdown: false }">
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                GPU Graphics Card
+                            </label>
+                            <input type="text" 
+                                   x-model="gpuQuery"
+                                   @input="$store.app.searchComponents(gpuQuery, 'GPU'); showDropdown = gpuQuery.length > 0"
+                                   @blur="setTimeout(() => showDropdown = false, 200)"
+                                   @focus="showDropdown = gpuQuery.length > 0"
+                                   placeholder="e.g., RTX 4070, RX 7900 XT..."
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                            
+                            <!-- Selected GPU Display -->
+                            <div x-show="$store.app.selectedGPU && !showDropdown" 
+                                 class="mt-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-semibold text-indigo-900 dark:text-indigo-200" 
+                                          x-text="$store.app.selectedGPU"></span>
+                                    <button @click="$store.app.setSelectedGPU(null); gpuQuery = ''" 
+                                            class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">✕</button>
+                                </div>
                             </div>
-                            <div class="stat">
-                                <span class="stat-label">Normalized Score</span>
-                                <span class="stat-value">${data.component2.normalized_score}/100</span>
+                            
+                            <!-- Autocomplete Dropdown -->
+                            <div x-show="showDropdown && $store.app.searchResults.gpu.length > 0" 
+                                 class="autocomplete-dropdown">
+                                <template x-for="result in $store.app.searchResults.gpu.slice(0, 5)" :key="result.name">
+                                    <div class="autocomplete-item" 
+                                         @click="$store.app.setSelectedGPU(result.name); gpuQuery = result.name; showDropdown = false">
+                                        <div class="autocomplete-item-name" x-text="result.name"></div>
+                                        <div class="autocomplete-item-meta">
+                                            Score: <span x-text="result.normalized_score"></span>/100 | 
+                                            Confidence: <span x-text="Math.round(result.confidence * 100)"></span>%
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
-                            <div class="stat">
-                                <span class="stat-label">Tier</span>
-                                <span class="stat-value">
-                                    <span class="tier tier-${data.component2.tier}">${data.component2.tier}</span>
+                        </div>
+                        
+                    </div>
+                    
+                    <button @click="$store.app.analyzePairing()" 
+                            :disabled="!$store.app.selectedCPU || !$store.app.selectedGPU"
+                            class="mt-6 w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold py-4 px-6 rounded-lg 
+                                   hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        Analyze Pairing
+                    </button>
+                </div>
+                
+                <!-- Results Section -->
+                <div x-show="$store.app.pairingAnalysis" x-transition>
+                    
+                    <!-- Component Overview -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <!-- CPU Card -->
+                        <div class="component-card">
+                            <div class="component-name" x-text="$store.app.pairingAnalysis?.cpu?.name"></div>
+                            <div class="component-meta">
+                                <span class="badge" :class="'badge-' + $store.app.getBalanceClass($store.app.pairingAnalysis?.cpu?.normalized_score || 0)">
+                                    Score: <span x-text="$store.app.pairingAnalysis?.cpu?.normalized_score"></span>/100
+                                </span>
+                                <span class="tier-display">
+                                    <span class="tier-stars" x-text="$store.app.getTierStars($store.app.pairingAnalysis?.cpu?.tier)"></span>
+                                    <span class="tier-label" x-text="$store.app.pairingAnalysis?.cpu?.tier"></span>
                                 </span>
                             </div>
-                            <div class="stat">
-                                <span class="stat-label">Category</span>
-                                <span class="stat-value">${data.component2.category || 'N/A'}</span>
+                        </div>
+                        
+                        <!-- GPU Card -->
+                        <div class="component-card">
+                            <div class="component-name" x-text="$store.app.pairingAnalysis?.gpu?.name"></div>
+                            <div class="component-meta">
+                                <span class="badge" :class="'badge-' + $store.app.getBalanceClass($store.app.pairingAnalysis?.gpu?.normalized_score || 0)">
+                                    Score: <span x-text="$store.app.pairingAnalysis?.gpu?.normalized_score"></span>/100
+                                </span>
+                                <span class="tier-display">
+                                    <span class="tier-stars" x-text="$store.app.getTierStars($store.app.pairingAnalysis?.gpu?.tier)"></span>
+                                    <span class="tier-label" x-text="$store.app.pairingAnalysis?.gpu?.tier"></span>
+                                </span>
                             </div>
                         </div>
                     </div>
-
-                    <div class="summary">
-                        <div class="summary-stat">
-                            Różnica w wydajności: <strong>${data.better_by_percent}%</strong>
+                    
+                    <!-- Overall Balance -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Overall Balance</h3>
+                        <div class="progress-bar mb-4">
+                            <div class="progress-fill" 
+                                 :class="$store.app.getBalanceClass($store.app.pairingAnalysis?.overall_balance_score || 0)"
+                                 :style="'width: ' + ($store.app.pairingAnalysis?.overall_balance_score || 0) + '%'"
+                                 x-text="($store.app.pairingAnalysis?.overall_balance_score || 0) + '/100'">
+                            </div>
                         </div>
-                        <div class="summary-stat">
-                            Różnica punktów: <strong>${data.comparison.passmark_difference.toLocaleString()}</strong>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-2xl font-bold text-gray-900 dark:text-white" 
+                                      x-text="'Verdict: ' + ($store.app.pairingAnalysis?.overall_verdict || '')"></span>
+                            </div>
+                            <div>
+                                <span class="text-lg" x-show="$store.app.pairingAnalysis?.overall_bottleneck">
+                                    Bottleneck: <span class="font-semibold text-red-600" 
+                                                      x-text="$store.app.pairingAnalysis?.overall_bottleneck"></span>
+                                </span>
+                                <span class="text-lg text-green-600 font-semibold" x-show="!$store.app.pairingAnalysis?.overall_bottleneck">
+                                    ✅ No Bottleneck
+                                </span>
+                            </div>
                         </div>
-                        <div class="summary-stat">
-                            Różnica normalized: <strong>${data.comparison.normalized_difference}</strong>
+                    </div>
+                    
+                    <!-- Performance by Category -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Performance by Game Category</h3>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <template x-for="(analysis, category) in $store.app.pairingAnalysis?.by_category" :key="category">
+                                <div class="category-card">
+                                    <div class="category-header">
+                                        <span class="category-icon">
+                                            <span x-show="category === 'esport'">🎯</span>
+                                            <span x-show="category === 'aaa_gpu'">🌆</span>
+                                            <span x-show="category === 'balanced'">⚖️</span>
+                                            <span x-show="category === 'simulation'">🏗️</span>
+                                        </span>
+                                        <h3 x-text="category.toUpperCase()"></h3>
+                                    </div>
+                                    
+                                    <div class="category-stats">
+                                        <div class="stat">
+                                            <label>Balance</label>
+                                            <div class="value" x-text="analysis.balance_score + '/100'"></div>
+                                        </div>
+                                        <div class="stat">
+                                            <label>CPU</label>
+                                            <div class="value" x-text="analysis.cpu_utilization + '%'"></div>
+                                        </div>
+                                        <div class="stat">
+                                            <label>GPU</label>
+                                            <div class="value" x-text="analysis.gpu_utilization + '%'"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="category-performance">
+                                        <div class="progress-bar" style="flex: 1">
+                                            <div class="progress-fill" 
+                                                 :class="$store.app.getBalanceClass(analysis.balance_score)"
+                                                 :style="'width: ' + analysis.balance_score + '%'">
+                                            </div>
+                                        </div>
+                                        <span class="performance-label" x-text="analysis.performance"></span>
+                                    </div>
+                                    
+                                    <div x-show="analysis.bottleneck" class="mt-3 text-sm text-orange-600 dark:text-orange-400">
+                                        ⚠️ Bottleneck: <span x-text="analysis.bottleneck"></span>
+                                    </div>
+                                    
+                                    <div x-show="!analysis.meets_minimum" class="mt-3">
+                                        <div class="text-sm font-semibold text-red-600 mb-2">⚠️ Issues:</div>
+                                        <template x-for="issue in analysis.issues" :key="issue">
+                                            <div class="text-xs text-red-600 dark:text-red-400" x-text="'• ' + issue"></div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            <!-- RECOMMENDATIONS TAB -->
+            <div x-show="$store.app.currentTab === 'recommend'" x-transition id="recommend-tab"
+                 x-data="{ recType: 'cpu', recComponent: '', recFocus: '', recLimit: 5 }">
+                
+                <!-- Input Section -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Get Component Recommendations</h2>
+                    
+                    <!-- Type Selection -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                            What do you have?
+                        </label>
+                        <div class="flex gap-4">
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" x-model="recType" value="cpu" class="hidden">
+                                <div :class="recType === 'cpu' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-300 dark:border-gray-600'"
+                                     class="border-2 rounded-lg p-4 text-center transition">
+                                    <div class="text-2xl mb-2">🖥️</div>
+                                    <div class="font-semibold text-gray-900 dark:text-white">I have CPU</div>
+                                    <div class="text-sm text-gray-500">Need GPU recommendations</div>
+                                </div>
+                            </label>
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" x-model="recType" value="gpu" class="hidden">
+                                <div :class="recType === 'gpu' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-300 dark:border-gray-600'"
+                                     class="border-2 rounded-lg p-4 text-center transition">
+                                    <div class="text-2xl mb-2">🎮</div>
+                                    <div class="font-semibold text-gray-900 dark:text-white">I have GPU</div>
+                                    <div class="text-sm text-gray-500">Need CPU recommendations</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Component Input with Autocomplete -->
+                    <div class="mb-6 relative" x-data="{ showRecDropdown: false }">
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <span x-show="recType === 'cpu'">Your CPU</span>
+                            <span x-show="recType === 'gpu'">Your GPU</span>
+                        </label>
+                        <input type="text" 
+                               x-model="recComponent"
+                               @input="$store.app.searchComponents(recComponent, recType.toUpperCase()); showRecDropdown = recComponent.length > 0"
+                               @blur="setTimeout(() => showRecDropdown = false, 200)"
+                               @focus="showRecDropdown = recComponent.length > 0"
+                               :placeholder="recType === 'cpu' ? 'e.g., 7800X3D, i9-14900K...' : 'e.g., RTX 4090, RX 7900 XTX...'"
+                               class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                      focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        
+                        <!-- Autocomplete Dropdown -->
+                        <div x-show="showRecDropdown && $store.app.searchResults[recType.toLowerCase()].length > 0" 
+                             class="autocomplete-dropdown">
+                            <template x-for="result in $store.app.searchResults[recType.toLowerCase()].slice(0, 5)" :key="result.name">
+                                <div class="autocomplete-item" 
+                                     @click="recComponent = result.name; showRecDropdown = false">
+                                    <div class="autocomplete-item-name" x-text="result.name"></div>
+                                    <div class="autocomplete-item-meta">
+                                        Score: <span x-text="result.normalized_score"></span>/100 | 
+                                        Confidence: <span x-text="Math.round(result.confidence * 100)"></span>%
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <!-- Game Focus -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Game Focus (optional)
+                        </label>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            <label class="cursor-pointer">
+                                <input type="radio" x-model="recFocus" value="" class="hidden">
+                                <div :class="recFocus === '' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-300 dark:border-gray-600'"
+                                     class="border-2 rounded-lg p-3 text-center transition">
+                                    <div class="text-sm font-semibold text-gray-900 dark:text-white">All</div>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" x-model="recFocus" value="esport" class="hidden">
+                                <div :class="recFocus === 'esport' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-300 dark:border-gray-600'"
+                                     class="border-2 rounded-lg p-3 text-center transition">
+                                    <div class="text-lg mb-1">🎯</div>
+                                    <div class="text-xs font-semibold text-gray-900 dark:text-white">E-sport</div>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" x-model="recFocus" value="aaa_gpu" class="hidden">
+                                <div :class="recFocus === 'aaa_gpu' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-300 dark:border-gray-600'"
+                                     class="border-2 rounded-lg p-3 text-center transition">
+                                    <div class="text-lg mb-1">🌆</div>
+                                    <div class="text-xs font-semibold text-gray-900 dark:text-white">AAA GPU</div>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" x-model="recFocus" value="balanced" class="hidden">
+                                <div :class="recFocus === 'balanced' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-300 dark:border-gray-600'"
+                                     class="border-2 rounded-lg p-3 text-center transition">
+                                    <div class="text-lg mb-1">⚖️</div>
+                                    <div class="text-xs font-semibold text-gray-900 dark:text-white">Balanced</div>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" x-model="recFocus" value="simulation" class="hidden">
+                                <div :class="recFocus === 'simulation' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-300 dark:border-gray-600'"
+                                     class="border-2 rounded-lg p-3 text-center transition">
+                                    <div class="text-lg mb-1">🏗️</div>
+                                    <div class="text-xs font-semibold text-gray-900 dark:text-white">Simulation</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button @click="$store.app.getRecommendations(recComponent, recType.toUpperCase(), recFocus || null, recLimit)" 
+                            :disabled="!recComponent"
+                            class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold py-4 px-6 rounded-lg 
+                                   hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        Get Recommendations
+                    </button>
+                </div>
+                
+                <!-- Results Section -->
+                <div x-show="$store.app.recommendations" x-transition>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                            Recommendations for <span x-text="$store.app.recommendations?.base_component?.name"></span>
+                        </h3>
+                        <p class="text-gray-600 dark:text-gray-400 mb-6" x-show="$store.app.recommendations?.game_focus">
+                            Focus: <span class="font-semibold" x-text="$store.app.recommendations?.game_focus"></span>
+                        </p>
+                        
+                        <template x-for="(rec, index) in $store.app.recommendations?.recommendations" :key="index">
+                            <div class="recommendation-card">
+                                <div class="recommendation-header">
+                                    <div class="flex items-start gap-4 flex-1">
+                                        <div class="recommendation-rank" x-text="index + 1"></div>
+                                        <div class="flex-1">
+                                            <div class="component-name" x-text="rec.name"></div>
+                                            <div class="component-meta">
+                                                <span class="badge" :class="'badge-' + $store.app.getBalanceClass(rec.normalized_score)">
+                                                    Score: <span x-text="rec.normalized_score"></span>/100
+                                                </span>
+                                                <span class="tier-display">
+                                                    <span class="tier-stars" x-text="$store.app.getTierStars(rec.tier)"></span>
+                                                    <span class="tier-label" x-text="rec.tier"></span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400" 
+                                             x-text="rec.match_score + '/100'"></div>
+                                        <div class="text-xs text-gray-500" x-text="rec.balance_description"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <div x-show="!$store.app.recommendations?.recommendations?.length" 
+                             class="text-center py-12 text-gray-500 dark:text-gray-400">
+                            No recommendations found. Try adjusting your search or game focus.
                         </div>
                     </div>
                 </div>
-            `;
-        }
-
-        function clearForm() {
-            document.getElementById('component1').value = '';
-            document.getElementById('component2').value = '';
-            document.getElementById('type').value = '';
-            document.getElementById('result').style.display = 'none';
-        }
-
-        // Przykładowe wartości dla szybkiego testu
-        window.addEventListener('load', () => {
-            if (window.location.hash === '#demo') {
-                document.getElementById('component1').value = 'i7-2630UM';
-                document.getElementById('component2').value = 'i9-8950HK';
-                document.getElementById('type').value = 'CPU';
-            }
+                
+            </div>
+            
+            <!-- GAMING PROFILE TAB -->
+            <div x-show="$store.app.currentTab === 'gaming'" x-transition id="gaming-tab"
+                 x-data="{ resolution: '1440p' }">
+                
+                <!-- Input Section -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Gaming Performance Profile</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">CPU</label>
+                            <input type="text" 
+                                   x-model="$store.app.selectedCPU"
+                                   placeholder="e.g., 7800X3D..."
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">GPU</label>
+                            <input type="text" 
+                                   x-model="$store.app.selectedGPU"
+                                   placeholder="e.g., RTX 4070..."
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Resolution</label>
+                            <select x-model="resolution"
+                                    class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                           focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                                <option value="1080p">1080p</option>
+                                <option value="1440p">1440p</option>
+                                <option value="4K">4K</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button @click="$store.app.getGamingProfile(resolution)" 
+                            :disabled="!$store.app.selectedCPU || !$store.app.selectedGPU"
+                            class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold py-4 px-6 rounded-lg 
+                                   hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        Generate Gaming Profile
+                    </button>
+                </div>
+                
+                <!-- Results -->
+                <div x-show="$store.app.gamingProfile" x-transition>
+                    
+                    <!-- Overall Summary -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">
+                                    <span x-text="$store.app.gamingProfile?.cpu?.name"></span> + 
+                                    <span x-text="$store.app.gamingProfile?.gpu?.name"></span>
+                                </h3>
+                                <p class="text-gray-600 dark:text-gray-400">
+                                    @ <span x-text="$store.app.gamingProfile?.resolution"></span>
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-3xl font-bold text-indigo-600 dark:text-indigo-400" 
+                                     x-text="$store.app.gamingProfile?.overall_balance_score + '/100'"></div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400" x-text="$store.app.gamingProfile?.overall_verdict"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-bar">
+                            <div class="progress-fill" 
+                                 :class="$store.app.getBalanceClass($store.app.gamingProfile?.overall_balance_score || 0)"
+                                 :style="'width: ' + ($store.app.gamingProfile?.overall_balance_score || 0) + '%'">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Performance by Category -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Performance by Game Type</h3>
+                        
+                        <div class="space-y-6">
+                            <template x-for="(perf, category) in $store.app.gamingProfile?.performance_by_category" :key="category">
+                                <div class="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-3xl">
+                                                <span x-show="category === 'esport'">🎯</span>
+                                                <span x-show="category === 'aaa_gpu'">🌆</span>
+                                                <span x-show="category === 'balanced'">⚖️</span>
+                                                <span x-show="category === 'simulation'">🏗️</span>
+                                            </span>
+                                            <div>
+                                                <h4 class="text-lg font-bold text-gray-900 dark:text-white" x-text="category.toUpperCase()"></h4>
+                                                <p class="text-sm text-gray-600 dark:text-gray-400" x-text="perf.games.slice(0, 2).join(', ')"></p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-2xl font-bold text-green-600" x-text="perf.fps_estimate"></div>
+                                            <div class="text-sm text-gray-600 dark:text-gray-400" x-text="'Settings: ' + perf.settings"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-3 gap-4 text-center">
+                                        <div>
+                                            <div class="text-sm text-gray-600 dark:text-gray-400">CPU Usage</div>
+                                            <div class="text-lg font-semibold text-gray-900 dark:text-white" x-text="perf.cpu_utilization"></div>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm text-gray-600 dark:text-gray-400">GPU Usage</div>
+                                            <div class="text-lg font-semibold text-gray-900 dark:text-white" x-text="perf.gpu_utilization"></div>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm text-gray-600 dark:text-gray-400">Bottleneck</div>
+                                            <div class="text-lg font-semibold" 
+                                                 :class="perf.bottleneck ? 'text-orange-600' : 'text-green-600'"
+                                                 x-text="perf.bottleneck || 'None'"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <!-- Upgrade Recommendations -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Upgrade Recommendations</h3>
+                        <div class="flex items-center gap-4">
+                            <div class="text-4xl">💡</div>
+                            <div class="flex-1">
+                                <div class="font-semibold text-gray-900 dark:text-white" 
+                                     x-text="'Priority: ' + $store.app.gamingProfile?.upgrade_recommendations?.priority"></div>
+                                <div class="text-gray-600 dark:text-gray-400" 
+                                     x-text="$store.app.gamingProfile?.upgrade_recommendations?.reason"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            <!-- COMPARE TAB -->
+            <div x-show="$store.app.currentTab === 'compare'" x-transition id="compare-tab">
+                
+                <!-- Input Section -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Compare Components</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <!-- Component 1 -->
+                        <div class="relative" x-data="{ query1: '', showDropdown1: false, type1: 'CPU' }">
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Component 1
+                            </label>
+                            <select x-model="type1" class="w-full px-4 py-2 mb-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                           focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                                <option value="CPU">CPU</option>
+                                <option value="GPU">GPU</option>
+                            </select>
+                            <input type="text" 
+                                   x-model="query1"
+                                   @input="$store.app.searchComponents(query1, type1); showDropdown1 = query1.length > 0"
+                                   @blur="setTimeout(() => showDropdown1 = false, 200)"
+                                   @focus="showDropdown1 = query1.length > 0"
+                                   placeholder="e.g., 7800X3D, RTX 4090..."
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                            
+                            <!-- Selected Display -->
+                            <div x-show="$store.app.compareComponent1 && !showDropdown1" 
+                                 class="mt-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-semibold text-indigo-900 dark:text-indigo-200" 
+                                          x-text="$store.app.compareComponent1"></span>
+                                    <button @click="$store.app.compareComponent1 = null; query1 = ''" 
+                                            class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">✕</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Autocomplete Dropdown -->
+                            <div x-show="showDropdown1 && $store.app.searchResults[type1.toLowerCase()].length > 0" 
+                                 class="autocomplete-dropdown">
+                                <template x-for="result in $store.app.searchResults[type1.toLowerCase()].slice(0, 5)" :key="result.name">
+                                    <div class="autocomplete-item" 
+                                         @click="$store.app.compareComponent1 = result.name; $store.app.compareType1 = type1; query1 = result.name; showDropdown1 = false">
+                                        <div class="autocomplete-item-name" x-text="result.name"></div>
+                                        <div class="autocomplete-item-meta">
+                                            Score: <span x-text="result.normalized_score"></span>/100 | 
+                                            Confidence: <span x-text="Math.round(result.confidence * 100)"></span>%
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- Component 2 -->
+                        <div class="relative" x-data="{ query2: '', showDropdown2: false, type2: 'CPU' }">
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Component 2
+                            </label>
+                            <select x-model="type2" class="w-full px-4 py-2 mb-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                           focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                                <option value="CPU">CPU</option>
+                                <option value="GPU">GPU</option>
+                            </select>
+                            <input type="text" 
+                                   x-model="query2"
+                                   @input="$store.app.searchComponents(query2, type2); showDropdown2 = query2.length > 0"
+                                   @blur="setTimeout(() => showDropdown2 = false, 200)"
+                                   @focus="showDropdown2 = query2.length > 0"
+                                   placeholder="e.g., i9-14900K, RX 7900 XTX..."
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                            
+                            <!-- Selected Display -->
+                            <div x-show="$store.app.compareComponent2 && !showDropdown2" 
+                                 class="mt-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-semibold text-indigo-900 dark:text-indigo-200" 
+                                          x-text="$store.app.compareComponent2"></span>
+                                    <button @click="$store.app.compareComponent2 = null; query2 = ''" 
+                                            class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">✕</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Autocomplete Dropdown -->
+                            <div x-show="showDropdown2 && $store.app.searchResults[type2.toLowerCase()].length > 0" 
+                                 class="autocomplete-dropdown">
+                                <template x-for="result in $store.app.searchResults[type2.toLowerCase()].slice(0, 5)" :key="result.name">
+                                    <div class="autocomplete-item" 
+                                         @click="$store.app.compareComponent2 = result.name; $store.app.compareType2 = type2; query2 = result.name; showDropdown2 = false">
+                                        <div class="autocomplete-item-name" x-text="result.name"></div>
+                                        <div class="autocomplete-item-meta">
+                                            Score: <span x-text="result.normalized_score"></span>/100 | 
+                                            Confidence: <span x-text="Math.round(result.confidence * 100)"></span>%
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                    <button @click="$store.app.compareComponents()" 
+                            :disabled="!$store.app.compareComponent1 || !$store.app.compareComponent2"
+                            class="mt-6 w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold py-4 px-6 rounded-lg 
+                                   hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        Compare Components
+                    </button>
+                </div>
+                
+                <!-- Results Section -->
+                <div x-show="$store.app.compareResult" x-transition>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">Comparison Results</h3>
+                        
+                        <!-- Winner Banner -->
+                        <div x-show="$store.app.compareResult?.winner !== 'tie'" class="mb-6 p-4 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border-2 border-green-500">
+                            <div class="text-center">
+                                <div class="text-3xl mb-2">🏆</div>
+                                <div class="text-xl font-bold text-gray-900 dark:text-white">
+                                    Winner: <span x-text="$store.app.compareResult?.winner === 'component1' ? $store.app.compareResult?.component1?.name : $store.app.compareResult?.component2?.name"></span>
+                                </div>
+                                <div class="text-lg text-gray-700 dark:text-gray-300">
+                                    Better by <span class="font-bold text-green-600" x-text="$store.app.compareResult?.better_by_percent + '%'"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Side by Side Comparison -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
+                            <!-- Component 1 -->
+                            <div class="p-6 rounded-lg border-2" 
+                                 :class="$store.app.compareResult?.winner === 'component1' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-300 dark:border-gray-600'">
+                                <div class="text-center mb-4">
+                                    <div x-show="$store.app.compareResult?.winner === 'component1'" class="text-4xl mb-2">🥇</div>
+                                    <div class="font-bold text-xl text-gray-900 dark:text-white mb-2" x-text="$store.app.compareResult?.component1?.name"></div>
+                                    <span class="badge" :class="'badge-' + $store.app.getBalanceClass($store.app.compareResult?.component1?.normalized_score || 0)">
+                                        Score: <span x-text="$store.app.compareResult?.component1?.normalized_score"></span>/100
+                                    </span>
+                                </div>
+                                
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center p-3 bg-white dark:bg-gray-700 rounded">
+                                        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">PassMark Score</span>
+                                        <span class="text-lg font-bold text-gray-900 dark:text-white" x-text="$store.app.compareResult?.component1?.passmark_score"></span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-white dark:bg-gray-700 rounded">
+                                        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Tier</span>
+                                        <span class="tier-display">
+                                            <span class="tier-stars" x-text="$store.app.getTierStars($store.app.compareResult?.component1?.tier)"></span>
+                                            <span class="tier-label" x-text="$store.app.compareResult?.component1?.tier"></span>
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-white dark:bg-gray-700 rounded">
+                                        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Category</span>
+                                        <span class="text-sm font-bold text-gray-900 dark:text-white capitalize" x-text="$store.app.compareResult?.component1?.category || 'N/A'"></span>
+                                    </div>
+                                    <div x-show="$store.app.compareResult?.component1?.tdp" class="flex justify-between items-center p-3 bg-white dark:bg-gray-700 rounded">
+                                        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">TDP</span>
+                                        <span class="text-sm font-bold text-gray-900 dark:text-white" x-text="$store.app.compareResult?.component1?.tdp + 'W'"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Component 2 -->
+                            <div class="p-6 rounded-lg border-2" 
+                                 :class="$store.app.compareResult?.winner === 'component2' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-300 dark:border-gray-600'">
+                                <div class="text-center mb-4">
+                                    <div x-show="$store.app.compareResult?.winner === 'component2'" class="text-4xl mb-2">🥇</div>
+                                    <div class="font-bold text-xl text-gray-900 dark:text-white mb-2" x-text="$store.app.compareResult?.component2?.name"></div>
+                                    <span class="badge" :class="'badge-' + $store.app.getBalanceClass($store.app.compareResult?.component2?.normalized_score || 0)">
+                                        Score: <span x-text="$store.app.compareResult?.component2?.normalized_score"></span>/100
+                                    </span>
+                                </div>
+                                
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center p-3 bg-white dark:bg-gray-700 rounded">
+                                        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">PassMark Score</span>
+                                        <span class="text-lg font-bold text-gray-900 dark:text-white" x-text="$store.app.compareResult?.component2?.passmark_score"></span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-white dark:bg-gray-700 rounded">
+                                        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Tier</span>
+                                        <span class="tier-display">
+                                            <span class="tier-stars" x-text="$store.app.getTierStars($store.app.compareResult?.component2?.tier)"></span>
+                                            <span class="tier-label" x-text="$store.app.compareResult?.component2?.tier"></span>
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-white dark:bg-gray-700 rounded">
+                                        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Category</span>
+                                        <span class="text-sm font-bold text-gray-900 dark:text-white capitalize" x-text="$store.app.compareResult?.component2?.category || 'N/A'"></span>
+                                    </div>
+                                    <div x-show="$store.app.compareResult?.component2?.tdp" class="flex justify-between items-center p-3 bg-white dark:bg-gray-700 rounded">
+                                        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">TDP</span>
+                                        <span class="text-sm font-bold text-gray-900 dark:text-white" x-text="$store.app.compareResult?.component2?.tdp + 'W'"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                        </div>
+                        
+                        <!-- Difference Stats -->
+                        <div class="mt-6 p-6 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                            <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-4 text-center">Performance Difference</h4>
+                            <div class="grid grid-cols-3 gap-4 text-center">
+                                <div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">PassMark Diff</div>
+                                    <div class="text-2xl font-bold text-gray-900 dark:text-white" x-text="$store.app.compareResult?.comparison?.passmark_difference"></div>
+                                    <div class="text-xs text-gray-500" x-text="$store.app.compareResult?.comparison?.passmark_difference_percent + '%'"></div>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Normalized Diff</div>
+                                    <div class="text-2xl font-bold text-gray-900 dark:text-white" x-text="$store.app.compareResult?.comparison?.normalized_difference"></div>
+                                    <div class="text-xs text-gray-500">points</div>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Performance</div>
+                                    <div class="text-2xl" x-text="$store.app.compareResult?.comparison?.component1_faster ? '⬆️ #1' : '⬆️ #2'"></div>
+                                    <div class="text-xs text-gray-500">faster</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            <!-- POWER ANALYSIS TAB -->
+            <div x-show="$store.app.currentTab === 'power'" x-transition id="power-tab">
+                
+                <!-- Input Section -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Power & Thermal Analysis</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">CPU</label>
+                            <input type="text" 
+                                   x-model="$store.app.selectedCPU"
+                                   placeholder="e.g., 7800X3D..."
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">GPU</label>
+                            <input type="text" 
+                                   x-model="$store.app.selectedGPU"
+                                   placeholder="e.g., RTX 4070..."
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                    </div>
+                    
+                    <button @click="$store.app.getPowerAnalysis()" 
+                            :disabled="!$store.app.selectedCPU || !$store.app.selectedGPU"
+                            class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold py-4 px-6 rounded-lg 
+                                   hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        Analyze Power & Cooling
+                    </button>
+                </div>
+                
+                <!-- Results -->
+                <div x-show="$store.app.powerAnalysis" x-transition>
+                    
+                    <!-- TDP Overview -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="stat-card">
+                            <div class="stat-card-value" x-text="$store.app.powerAnalysis?.cpu?.tdp + 'W'"></div>
+                            <div class="stat-card-label">CPU TDP</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-value" x-text="$store.app.powerAnalysis?.gpu?.tdp + 'W'"></div>
+                            <div class="stat-card-label">GPU TDP</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-value" x-text="$store.app.powerAnalysis?.power_consumption?.total_tdp + 'W'"></div>
+                            <div class="stat-card-label">System Total</div>
+                        </div>
+                    </div>
+                    
+                    <!-- PSU Recommendation -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="text-5xl">🔌</div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">PSU Recommendation</h3>
+                                <p class="text-gray-600 dark:text-gray-400">Power Supply Unit requirements</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="text-center p-6 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                                <div class="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2" 
+                                     x-text="$store.app.powerAnalysis?.psu_recommendation?.recommended_wattage + 'W'"></div>
+                                <div class="text-sm font-semibold text-gray-700 dark:text-gray-300">Recommended</div>
+                            </div>
+                            <div class="text-center p-6 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <div class="text-2xl font-semibold text-gray-900 dark:text-white mb-2" 
+                                     x-text="$store.app.powerAnalysis?.psu_recommendation?.wattage_range"></div>
+                                <div class="text-sm font-semibold text-gray-700 dark:text-gray-300">Acceptable Range</div>
+                            </div>
+                            <div class="text-center p-6 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <div class="text-lg font-semibold text-gray-900 dark:text-white mb-2" 
+                                     x-text="$store.app.powerAnalysis?.psu_recommendation?.efficiency_rating"></div>
+                                <div class="text-sm font-semibold text-gray-700 dark:text-gray-300">Efficiency</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Thermal Analysis -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="text-5xl">🌡️</div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Thermal & Cooling</h3>
+                                <p class="text-gray-600 dark:text-gray-400">Heat management requirements</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="p-6 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <div class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Heat Class</div>
+                                <div class="text-3xl font-bold capitalize" 
+                                     :class="{
+                                         'text-green-600': $store.app.powerAnalysis?.thermal?.heat_class === 'low',
+                                         'text-yellow-600': $store.app.powerAnalysis?.thermal?.heat_class === 'medium',
+                                         'text-orange-600': $store.app.powerAnalysis?.thermal?.heat_class === 'high',
+                                         'text-red-600': $store.app.powerAnalysis?.thermal?.heat_class === 'extreme'
+                                     }"
+                                     x-text="$store.app.powerAnalysis?.thermal?.heat_class"></div>
+                            </div>
+                            <div class="p-6 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <div class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Cooling Recommendation</div>
+                                <div class="text-lg font-semibold text-gray-900 dark:text-white" 
+                                     x-text="$store.app.powerAnalysis?.thermal?.cooling_recommendation"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Operating Costs -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="text-5xl">💰</div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Operating Costs</h3>
+                                <p class="text-gray-600 dark:text-gray-400">Estimated electricity costs (USD)</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="p-6 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                <div class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Monthly Cost</div>
+                                <div class="text-4xl font-bold text-green-600 dark:text-green-400" 
+                                     x-text="'$' + $store.app.powerAnalysis?.operating_costs?.combined_monthly_usd"></div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400 mt-2">Based on 4h gaming/day</div>
+                            </div>
+                            <div class="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                <div class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Yearly Cost</div>
+                                <div class="text-4xl font-bold text-blue-600 dark:text-blue-400" 
+                                     x-text="'$' + $store.app.powerAnalysis?.operating_costs?.combined_yearly_usd"></div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400 mt-2">@ $0.15/kWh</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                            <div class="grid grid-cols-3 gap-4 text-center text-sm">
+                                <div>
+                                    <div class="text-gray-600 dark:text-gray-400 mb-1">Idle</div>
+                                    <div class="font-semibold text-gray-900 dark:text-white" 
+                                         x-text="$store.app.powerAnalysis?.power_consumption?.idle_power + 'W'"></div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-600 dark:text-gray-400 mb-1">Gaming</div>
+                                    <div class="font-semibold text-gray-900 dark:text-white" 
+                                         x-text="$store.app.powerAnalysis?.power_consumption?.gaming_power + 'W'"></div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-600 dark:text-gray-400 mb-1">Max</div>
+                                    <div class="font-semibold text-gray-900 dark:text-white" 
+                                         x-text="$store.app.powerAnalysis?.power_consumption?.max_power + 'W'"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            <!-- CONFIGURATION TAB -->
+            <div x-show="$store.app.currentTab === 'config'" x-transition id="config-tab" 
+                 x-init="$store.app.loadConfig()">
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-4 mb-6">
+                    <button @click="$store.app.saveConfig()" 
+                            class="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-lg transition">
+                        💾 Save Changes
+                    </button>
+                    <button @click="$store.app.resetConfig()" 
+                            class="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-lg transition">
+                        🔄 Reset to Defaults
+                    </button>
+                </div>
+                
+                <!-- Recommendation Settings -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">🎯 Recommendation Settings</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Min Match Score (0-100)
+                            </label>
+                            <input type="number" 
+                                   x-model.number="$store.app.config.recommendation.min_match_score"
+                                   min="0" max="100"
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                            <p class="text-xs text-gray-500 mt-1">Minimum score for component recommendations</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Bottleneck Threshold (0-100)
+                            </label>
+                            <input type="number" 
+                                   x-model.number="$store.app.config.recommendation.bottleneck_threshold"
+                                   min="0" max="100"
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                            <p class="text-xs text-gray-500 mt-1">Score difference for bottleneck detection</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Max Recommendations (1-20)
+                            </label>
+                            <input type="number" 
+                                   x-model.number="$store.app.config.recommendation.max_recommendations"
+                                   min="1" max="20"
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                            <p class="text-xs text-gray-500 mt-1">Maximum number of recommendations to show</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                PSU Overhead (20-50%)
+                            </label>
+                            <input type="number" 
+                                   x-model.number="$store.app.config.recommendation.psu_overhead_percent"
+                                   min="20" max="50"
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                            <p class="text-xs text-gray-500 mt-1">PSU headroom percentage for safety</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" 
+                                   x-model="$store.app.config.recommendation.enable_suggestions"
+                                   class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                Enable component suggestions on errors
+                            </span>
+                        </label>
+                        
+                        <div x-show="$store.app.config.recommendation.enable_suggestions" class="mt-4 ml-8">
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Max Suggestions (1-10)
+                            </label>
+                            <input type="number" 
+                                   x-model.number="$store.app.config.recommendation.max_suggestions"
+                                   min="1" max="10"
+                                   class="w-full md:w-48 px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Scraping Settings -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">🔄 Scraping Settings</h2>
+                    
+                    <div class="space-y-4 mb-6">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" 
+                                   x-model="$store.app.config.scraping.use_full_lists"
+                                   class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                Use full component lists (~28k items)
+                            </span>
+                        </label>
+                        
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" 
+                                   x-model="$store.app.config.scraping.include_workstation"
+                                   class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                Include workstation components
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Delay Between Requests (ms)
+                            </label>
+                            <input type="number" 
+                                   x-model.number="$store.app.config.scraping.delay_between_requests_ms"
+                                   min="500" max="10000"
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Max Retries
+                            </label>
+                            <input type="number" 
+                                   x-model.number="$store.app.config.scraping.max_retries"
+                                   min="1" max="10"
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Timeout (seconds)
+                            </label>
+                            <input type="number" 
+                                   x-model.number="$store.app.config.scraping.timeout_seconds"
+                                   min="10" max="120"
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Scheduler Settings -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">⏰ Scheduler Settings</h2>
+                    
+                    <div class="mb-6">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" 
+                                   x-model="$store.app.config.scheduler.enabled"
+                                   class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                Enable automatic scraping
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <div x-show="$store.app.config.scheduler.enabled" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Schedule Day
+                            </label>
+                            <select x-model="$store.app.config.scheduler.scrape_days"
+                                    class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                           focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                                <option value="monday">Monday</option>
+                                <option value="tuesday">Tuesday</option>
+                                <option value="wednesday">Wednesday</option>
+                                <option value="thursday">Thursday</option>
+                                <option value="friday">Friday</option>
+                                <option value="saturday">Saturday</option>
+                                <option value="sunday">Sunday</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Time (HH:MM)
+                            </label>
+                            <input type="text" 
+                                   x-model="$store.app.config.scheduler.scrape_time"
+                                   pattern="[0-9]{2}:[0-9]{2}"
+                                   placeholder="03:00"
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Timezone
+                            </label>
+                            <input type="text" 
+                                   x-model="$store.app.config.scheduler.timezone"
+                                   class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                          focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Database Settings -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">📊 Database Settings</h2>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Database Path
+                        </label>
+                        <input type="text" 
+                               x-model="$store.app.config.database.path"
+                               class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg 
+                                      focus:outline-none focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                            <div class="text-2xl font-bold text-gray-900 dark:text-white" x-text="$store.app.stats.dbCount"></div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Components</div>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                            <button @click="api.createBackup().then(() => $store.app.showToast('Backup created', 'success'))" 
+                                    class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+                                Create Backup
+                            </button>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                            <button @click="alert('Restore from backup - select file')" 
+                                    class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+                                Restore Backup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            
+        </div>
+        
+        <!-- Footer -->
+        <footer class="mt-12 text-center text-white/60 text-sm">
+            <p>PassMark Scraper API v2.0.0 | 
+               <a href="/docs" target="_blank" class="underline hover:text-white">API Docs</a> | 
+               28,333+ components
+            </p>
+        </footer>
+        
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div x-show="$store.app.loading" 
+         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+         x-transition>
+        <div class="spinner"></div>
+    </div>
+    
+    <!-- API Client -->
+    <script src="/static/js/api.js"></script>
+    
+    <!-- State Management -->
+    <script src="/static/js/state.js"></script>
+    
+    <!-- Initialize App -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            Alpine.store('app').init();
         });
     </script>
+    
 </body>
 </html>
-

@@ -10,11 +10,23 @@ REST API microservice that provides performance benchmark scores for PC componen
 
 ## 🎯 Features
 
+### Core Features
 - 🔍 **28,000+ Components** in database (CPU, GPU, RAM, Storage)
 - ⚡ **Fast REST API** with component search and comparison
 - 🎨 **Beautiful Web UI** for easy component comparison
 - 📊 **Normalized Scores** (0-100) for fair comparisons
 - 🏆 **Tier System** (low/mid/high/ultra)
+
+### NEW: Gaming & Bottleneck Analysis 🎮
+- 🎯 **Intelligent CPU+GPU Pairing** - Analyze bottlenecks for your build
+- 🎮 **Game Category Analysis** - E-sport, AAA GPU-heavy, Balanced, Simulation
+- 🔄 **Smart Recommendations** - Get optimal component pairings
+- 📈 **Performance Estimates** - FPS predictions per game type and resolution
+- ⚖️ **Balance Scoring** - 0-100 score for component compatibility
+- 🚫 **Minimum Requirements** - Prevents absurd pairings (Threadripper + GTX 1030)
+- 📊 **Gaming Profiles** - Complete performance breakdown by game category
+
+### Other Features
 - 🔄 **Automatic Scraping** from PassMark with full list support
 - 💾 **All DDR Types** (DDR5, DDR4, DDR3, DDR2)
 - 🕰️ **Legacy Support** (Pentium 4, Athlon, VIA processors)
@@ -76,6 +88,135 @@ Open http://localhost:9091 in your browser for a beautiful comparison interface.
 ---
 
 ## 🔌 API Endpoints
+
+### 🆕 Gaming & Recommendation Endpoints
+
+#### `POST /analyze-pairing`
+Analyze CPU+GPU pairing for bottlenecks across all game categories.
+
+**Request:**
+```bash
+curl -X POST http://localhost:9091/analyze-pairing \
+  -H "Content-Type: application/json" \
+  -d '{"cpu": "Ryzen 7 7800X3D", "gpu": "RTX 4070"}'
+```
+
+**Response:**
+```json
+{
+  "cpu": {"name": "AMD Ryzen 7 7800X3D", "tier": "ultra", "normalized_score": 85},
+  "gpu": {"name": "GeForce RTX 4070", "tier": "high", "normalized_score": 75},
+  "overall_balance_score": 88,
+  "overall_verdict": "excellent",
+  "overall_bottleneck": null,
+  "by_category": {
+    "esport": {
+      "balance_score": 92,
+      "bottleneck": null,
+      "performance": "excellent"
+    },
+    "aaa_gpu": {
+      "balance_score": 85,
+      "bottleneck": "slight_cpu",
+      "performance": "very_good"
+    }
+  }
+}
+```
+
+#### `GET /recommend-pairing`
+Get component recommendations based on what you have.
+
+**Examples:**
+```bash
+# I have a CPU, recommend GPUs
+curl "http://localhost:9091/recommend-pairing?cpu=7800X3D&game_focus=aaa_gpu&limit=5"
+
+# I have a GPU, recommend CPUs  
+curl "http://localhost:9091/recommend-pairing?gpu=RTX4090&game_focus=simulation"
+```
+
+**Response:**
+```json
+{
+  "base_component": {"name": "AMD Ryzen 7 7800X3D", "tier": "ultra"},
+  "recommendations": [
+    {
+      "name": "GeForce RTX 4080",
+      "match_score": 98,
+      "balance_description": "Perfect match"
+    },
+    {
+      "name": "GeForce RTX 4070 Ti",
+      "match_score": 95,
+      "balance_description": "Excellent balance"
+    }
+  ]
+}
+```
+
+#### `POST /gaming-profile`
+Get complete gaming performance profile for your build.
+
+**Request:**
+```bash
+curl -X POST http://localhost:9091/gaming-profile \
+  -H "Content-Type: application/json" \
+  -d '{"cpu": "7800X3D", "gpu": "RTX4070", "resolution": "1440p"}'
+```
+
+**Response:**
+```json
+{
+  "overall_balance_score": 88,
+  "overall_verdict": "excellent",
+  "performance_by_category": {
+    "esport": {
+      "games": ["Valorant", "CS2", "LoL"],
+      "fps_estimate": "300-500+ FPS",
+      "settings": "Ultra",
+      "bottleneck": null
+    },
+    "aaa_gpu": {
+      "games": ["Cyberpunk 2077", "Starfield"],
+      "fps_estimate": "100-120 FPS @ 1440p Ultra",
+      "settings": "Ultra",
+      "bottleneck": "slight_cpu"
+    }
+  },
+  "upgrade_recommendations": {
+    "priority": "None",
+    "reason": "System is well balanced"
+  }
+}
+```
+
+#### `GET /estimate-performance`
+Estimate gaming performance for a single component.
+
+**Example:**
+```bash
+curl "http://localhost:9091/estimate-performance?component=RTX4070&type=GPU"
+```
+
+#### `GET /game-categories`
+Get list of all game categories with their characteristics.
+
+**Response:**
+```json
+{
+  "categories": {
+    "esport": {
+      "display_name": "E-sport / CPU-heavy",
+      "cpu_importance": "80%",
+      "gpu_importance": "20%",
+      "examples": ["Valorant", "CS2", "LoL"]
+    }
+  }
+}
+```
+
+---
 
 ### Main Endpoints
 
@@ -351,17 +492,27 @@ PassMarkScraper/
 
 ## 🎯 Use Cases
 
-### 1. PC Building Assistant
-Compare components to help users choose the best option for their budget.
+### 1. 🆕 Gaming Build Optimizer
+- **"Will my CPU bottleneck this GPU?"** - Get instant analysis
+- **"Best GPU for my Ryzen 7800X3D?"** - Smart recommendations based on game type
+- **"Can I run Cyberpunk at 1440p Ultra?"** - Performance estimates per game category
 
-### 2. Performance Benchmarking
-Get real-world performance data for any PC component.
+### 2. PC Building Assistant
+Compare components and get intelligent pairing suggestions for balanced builds.
 
-### 3. Upgrade Advisor
-Compare old components with new ones to show upgrade value.
+### 3. Bottleneck Prevention
+Avoid common mistakes like pairing i3 with RTX 4090 or Threadripper with GTX 1030.
 
-### 4. Market Analysis
-Analyze component performance across different price ranges.
+### 4. Upgrade Advisor
+- Current build analysis with upgrade priority
+- See which component is holding you back
+- Get specific upgrade recommendations
+
+### 5. Performance Benchmarking
+Get real-world performance data and FPS estimates for any PC component.
+
+### 6. Market Analysis
+Analyze component performance across different price ranges and tiers.
 
 ---
 
@@ -437,10 +588,12 @@ This scraper is for **personal and educational use only**. Respect PassMark's Te
 
 ## 📊 Status
 
-- **Version:** 1.0.0
+- **Version:** 2.0.0 🆕
 - **Status:** Production Ready ✅
 - **Database:** 28,311 components (all DDR types, legacy CPUs included)
-- **API:** 20 endpoints, fully documented
+- **API:** 26 endpoints, fully documented
+- **New Features:** Bottleneck analysis, Gaming profiles, Smart recommendations ✅
+- **Tests:** 100+ tests passing ✅
 - **Docker:** Supported ✅
 - **CI/CD:** GitHub Actions ready
 - **License:** MIT
@@ -466,12 +619,23 @@ Clean, modern interface for comparing components with real-time results.
 
 ## 🚀 Future Enhancements
 
-- [ ] GraphQL API
-- [ ] Component price tracking
+### Already Implemented ✅
+- [x] CPU+GPU bottleneck analysis
+- [x] Gaming performance profiles
+- [x] Intelligent component recommendations
+- [x] Multi-category game analysis
+
+### Planned
+- [ ] Budget optimizer - "Best build for $1500"
+- [ ] Power consumption analysis (TDP)
+- [ ] Cooling requirements calculator
+- [ ] RAM/Storage impact on performance
+- [ ] VR readiness checker
+- [ ] Price tracking integration
 - [ ] Historical performance trends
 - [ ] More component types (Motherboards, PSUs)
+- [ ] GraphQL API
 - [ ] Export to CSV/JSON
-- [ ] Batch comparison API
 
 ---
 
@@ -519,7 +683,8 @@ This software is for personal and educational use only.
 
 ---
 
-**Last Updated:** 2025-10-12  
-**Version:** 1.0.0  
+**Last Updated:** 2025-10-20  
+**Version:** 2.0.0  
 **License:** MIT  
-**Status:** Production Ready ✅
+**Status:** Production Ready ✅  
+**New in 2.0:** Gaming analysis, Bottleneck detection, Smart recommendations 🎮
