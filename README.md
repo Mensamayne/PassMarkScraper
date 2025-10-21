@@ -602,18 +602,30 @@ This scraper is for **personal and educational use only**. Respect PassMark's Te
 
 ## 🎨 Screenshots
 
-### Web Interface
-Clean, modern interface for comparing components with real-time results.
+### 🏠 Main Dashboard
+Modern, responsive web interface for component comparison and analysis.
 
-### API Response
-```json
-{
-  "winner": "component2",
-  "better_by_percent": 776.3,
-  "component1": { "name": "GeForce GTX 760A", "tier": "low" },
-  "component2": { "name": "GeForce RTX 3050", "tier": "high" }
-}
-```
+![Main Dashboard](images/main.png)
+
+### 🎮 Gaming Profiles & Performance Analysis
+Complete gaming performance breakdown by category with FPS estimates and bottleneck detection.
+
+![Gaming Profiles](images/gaming.png)
+
+### 🎯 Smart Component Recommendations
+Intelligent CPU+GPU pairing recommendations based on your use case and gaming profile.
+
+![Recommendations](images/recommend.png)
+
+### ⚡ Power Consumption Analysis
+TDP calculations and PSU recommendations for your build.
+
+![Power Analysis](images/power.png)
+
+### 📚 Interactive API Documentation
+FastAPI's built-in Swagger UI with all endpoints documented and testable.
+
+![API Documentation](images/docs.png)
 
 ---
 
