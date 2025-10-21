@@ -225,4 +225,3 @@ def get_bottleneck_threshold(category_name: str) -> Dict[str, float]:
         return {"cpu_bound": 1.8, "gpu_bound": 0.8}
     else:  # Balanced
         return {"cpu_bound": 1.3, "gpu_bound": 0.7}
-

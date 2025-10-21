@@ -263,18 +263,18 @@ class Database:
     def search_enhanced(self, query: str, component_type: Optional[str] = None) -> List[dict]:
         """
         Enhanced search with fuzzy matching, chipset extraction, and confidence scoring.
-        
+
         Returns list of matches with confidence scores, ordered by confidence DESC.
         """
         import re
         from app.normalizer import normalize_name
-        
+
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        
+
         matches = []
-        
+
         # 1. Extract chipset/model number from query
         chipset_patterns = {
             'gpu': [
@@ -290,7 +290,7 @@ class Database:
                 r'(\d{4})\s*x',  # 7900X
             ]
         }
-        
+
         extracted_chipsets = []
         if component_type and component_type.lower() in chipset_patterns:
             for pattern in chipset_patterns[component_type.lower()]:
@@ -300,21 +300,22 @@ class Database:
                         extracted_chipsets.extend([str(m) for m in match if m])
                     else:
                         extracted_chipsets.append(str(match))
-        
+
         # 2. Try exact normalized match first (highest confidence)
         # BUT: Skip for RAM/STORAGE - they need token-based search
         if component_type and component_type.upper() not in ['RAM', 'STORAGE']:
             normalized_search = normalize_name(query)
-            base_query = "SELECT * FROM component_benchmarks WHERE normalized_name LIKE ?"
+            base_query = ("SELECT * FROM component_benchmarks "
+                          "WHERE normalized_name LIKE ?")
             params = [f"%{normalized_search}%"]
-            
+
             if component_type:
                 base_query += " AND component_type = ?"
                 params.append(component_type.upper())
-            
+
             cursor.execute(base_query, params)
             exact_rows = cursor.fetchall()
-            
+
             for row in exact_rows:
                 matches.append({
                     "name": row["name"],
@@ -325,27 +326,28 @@ class Database:
                 })
         else:
             normalized_search = normalize_name(query)
-        
+
         # 3. Try chipset-based matching (high confidence)
         if extracted_chipsets and not matches:
             for chipset in extracted_chipsets:
-                chipset_query = "SELECT * FROM component_benchmarks WHERE name LIKE ?"
+                chipset_query = ("SELECT * FROM component_benchmarks "
+                                 "WHERE name LIKE ?")
                 chipset_params = [f"%{chipset}%"]
-                
+
                 if component_type:
                     chipset_query += " AND component_type = ?"
                     chipset_params.append(component_type.upper())
-                
+
                 chipset_query += " ORDER BY passmark_score DESC LIMIT 3"
-                
+
                 cursor.execute(chipset_query, chipset_params)
                 chipset_rows = cursor.fetchall()
-                
+
                 for row in chipset_rows:
                     # Calculate confidence based on how well chipset matches
                     chipset_in_name = chipset.lower() in row["name"].lower()
                     confidence = 0.9 if chipset_in_name else 0.7
-                    
+
                     matches.append({
                         "name": row["name"],
                         "passmark_score": row["passmark_score"],
@@ -354,27 +356,28 @@ class Database:
                         "match_type": "chipset_extracted",
                         "extracted_chipset": chipset
                     })
-        
+
         # 4. Try partial matching (medium confidence) - SKIP for RAM/STORAGE
-        if not matches and component_type and component_type.upper() not in ['RAM', 'STORAGE']:
+        if (not matches and component_type
+                and component_type.upper() not in ['RAM', 'STORAGE']):
             # Remove spaces and try matching
             search_no_spaces = normalized_search.replace(" ", "")
-            
+
             partial_query = """
                 SELECT * FROM component_benchmarks
                 WHERE REPLACE(normalized_name, ' ', '') LIKE ?
             """
             partial_params = [f"%{search_no_spaces}%"]
-            
+
             if component_type:
                 partial_query += " AND component_type = ?"
                 partial_params.append(component_type.upper())
-            
+
             partial_query += " ORDER BY passmark_score DESC LIMIT 5"
-            
+
             cursor.execute(partial_query, partial_params)
             partial_rows = cursor.fetchall()
-            
+
             for row in partial_rows:
                 matches.append({
                     "name": row["name"],
@@ -383,15 +386,18 @@ class Database:
                     "confidence": 0.6,
                     "match_type": "partial_match"
                 })
-        
+
         # 5. Try token-based matching (PRIMARY for RAM/STORAGE, fallback for others)
         # For RAM/STORAGE: always try, for others: only if no matches yet
-        should_try_tokens = (component_type and component_type.upper() in ['RAM', 'STORAGE']) or not matches
+        should_try_tokens = ((component_type
+                              and component_type.upper() in ['RAM', 'STORAGE'])
+                             or not matches)
         if should_try_tokens:
             # Extract meaningful tokens (skip Polish words, focus on specs)
-            skip_words = ['pamięć', 'pamiec', 'dysk', 'ssd', 'hdd', 'nvme', 'gb', 'tb']
+            skip_words = ['pamięć', 'pamiec', 'dysk', 'ssd', 'hdd',
+                          'nvme', 'gb', 'tb']
             all_tokens = re.findall(r'\b\w+\b', query.lower())
-            
+
             # Clean tokens: remove 'mhz' suffix, skip words
             tokens = []
             for t in all_tokens:
@@ -401,81 +407,92 @@ class Database:
                 cleaned = re.sub(r'(mhz|ghz)$', '', t)
                 if cleaned and cleaned not in skip_words:
                     tokens.append(cleaned)
-            
+
             if len(tokens) >= 2:  # Need at least 2 tokens
                 token_conditions = []
                 token_params = []
-                
+
                 # For RAM/STORAGE, prioritize key specs
                 important_tokens = []
                 for token in tokens:
                     # RAM keywords
-                    ram_keywords = ['ddr4', 'ddr5', '3200', '6000', '5600', 'cl']
+                    ram_keywords = ['ddr4', 'ddr5', '3200', '6000', '5600',
+                                    'cl']
                     # STORAGE keywords (product codes, brands, types)
-                    storage_keywords = ['ssdpr', 'cx400', 'nvme', 'samsung', 'crucial', 'wd', 'seagate', 'm.2']
-                    
-                    if any(keyword in token for keyword in ram_keywords + storage_keywords):
+                    storage_keywords = ['ssdpr', 'cx400', 'nvme', 'samsung',
+                                        'crucial', 'wd', 'seagate', 'm.2']
+
+                    kw = ram_keywords + storage_keywords
+                    if any(keyword in token for keyword in kw):
                         important_tokens.append(token)
-                
+
                 # Use important tokens first, then others (remove duplicates)
                 search_tokens_raw = important_tokens + tokens
-                search_tokens = list(dict.fromkeys(search_tokens_raw))[:4]  # Remove duplicates, max 4 tokens
-                
+                # Remove duplicates, max 4 tokens
+                search_tokens = list(dict.fromkeys(search_tokens_raw))[:4]
+
                 # Try with decreasing number of tokens (3 -> 2)
                 for min_tokens in [3, 2]:  # Start with 3 tokens, then try 2
                     if matches:
                         break  # Found something, stop
-                        
-                    tokens_to_use = search_tokens[:min(min_tokens, len(search_tokens))]
-                    
+
+                    n = min(min_tokens, len(search_tokens))
+                    tokens_to_use = search_tokens[:n]
+
                     token_conditions = []
                     token_params = []
-                    
+
                     for token in tokens_to_use:
                         token_conditions.append("LOWER(name) LIKE ?")
                         token_params.append(f"%{token}%")
-                    
+
                     token_query = f"""
                         SELECT * FROM component_benchmarks
                         WHERE {' AND '.join(token_conditions)}
                     """
-                    
+
                     if component_type:
                         token_query += " AND component_type = ?"
                         token_params.append(component_type.upper())
-                    
+
                     token_query += " ORDER BY passmark_score DESC LIMIT 10"
-                    
+
                     cursor.execute(token_query, token_params)
                     token_rows = cursor.fetchall()
-                    
+
                     if token_rows:
-                        # Higher confidence for RAM/STORAGE token matching, adjusted by token count
-                        base_confidence = 0.85 if component_type and component_type.upper() in ['RAM', 'STORAGE'] else 0.5
-                        token_confidence = base_confidence * (len(tokens_to_use) / len(search_tokens))
-                        
+                        # Higher confidence for RAM/STORAGE token matching,
+                        # adjusted by token count
+                        base_conf = (0.85 if component_type
+                                     and component_type.upper() in ['RAM', 'STORAGE']
+                                     else 0.5)
+                        ratio = len(tokens_to_use) / len(search_tokens)
+                        token_confidence = base_conf * ratio
+
                         for row in token_rows:
                             matches.append({
                                 "name": row["name"],
                                 "passmark_score": row["passmark_score"],
                                 "normalized_score": row["normalized_score"],
-                                "confidence": max(0.75, token_confidence),  # At least 0.75 for RAM/STORAGE
+                                # At least 0.75 for RAM/STORAGE
+                                "confidence": max(0.75, token_confidence),
                                 "match_type": "token_based",
                                 "tokens_used": tokens_to_use,
                                 "token_count": len(tokens_to_use)
                             })
-        
+
         # Remove duplicates and sort by confidence
         seen_names = set()
         unique_matches = []
-        
+
         for match in matches:
             if match["name"] not in seen_names:
                 seen_names.add(match["name"])
                 unique_matches.append(match)
-        
+
         # Sort by confidence descending, then by passmark_score descending
-        unique_matches.sort(key=lambda x: (-x["confidence"], -x["passmark_score"]))
-        
+        unique_matches.sort(key=lambda x: (-x["confidence"],
+                                           -x["passmark_score"]))
+
         conn.close()
         return unique_matches[:5]  # Return top 5 matches

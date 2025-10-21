@@ -9,9 +9,11 @@ def categorize_component(name: str, component_type: str) -> str:
 
     if component_type == "CPU":
         # Apple - exclude (M1, M2, M3, M4 processors)
-        if "apple" in name_lower or name_lower.startswith("m1 ") or name_lower.startswith("m2 ") or name_lower.startswith("m3 ") or name_lower.startswith("m4 "):
+        if ("apple" in name_lower or name_lower.startswith("m1 ")
+                or name_lower.startswith("m2 ") or name_lower.startswith("m3 ")
+                or name_lower.startswith("m4 ")):
             return "mobile"
-        
+
         # Server - exclude
         server_keywords = ["epyc", "xeon", "opteron", "ampere altra", "graviton", "neoverse"]
         if any(keyword in name_lower for keyword in server_keywords):
@@ -23,7 +25,7 @@ def categorize_component(name: str, component_type: str) -> str:
 
         # Mobile/Laptop - exclude
         import re
-        
+
         # Check for mobile patterns
         mobile_patterns = [
             r'\d+(hx|hs|hq|h|p|u)',  # Numbers followed by mobile suffix (9955HX, 12900H, etc)
@@ -32,7 +34,7 @@ def categorize_component(name: str, component_type: str) -> str:
         ]
         if any(re.search(pattern, name_lower) for pattern in mobile_patterns):
             return "mobile"
-        
+
         # Simple keyword check
         mobile_keywords = ["mobile", "laptop", "ultra 5", "ultra 7", "ultra 9"]
         if any(keyword in name_lower for keyword in mobile_keywords):

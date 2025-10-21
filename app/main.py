@@ -15,7 +15,6 @@ from app.models import (
     PairingAnalysisRequest,
     PairingAnalysisResponse,
     CategoryAnalysis,
-    RecommendPairingRequest,
     RecommendPairingResponse,
     ComponentRecommendation,
     GamingProfileRequest,
@@ -198,13 +197,13 @@ async def search_benchmark(
 async def search_enhanced(request: dict):
     """
     Enhanced search with fuzzy matching and chipset extraction.
-    
+
     Request body:
     {
         "query": "INNO3D RTX5080 ICHILL FROSTBITE PRO 16GB",
         "component_type": "gpu"
     }
-    
+
     Response:
     {
         "matches": [
@@ -222,20 +221,20 @@ async def search_enhanced(request: dict):
     try:
         query = request.get("query", "")
         component_type = request.get("component_type", "").upper()
-        
+
         if not query:
             raise HTTPException(status_code=400, detail="Query parameter is required")
-        
+
         # Use enhanced search from database
         matches = db.search_enhanced(query, component_type)
-        
+
         return {
             "matches": matches,
             "fallback_used": len(matches) == 0,
             "query": query,
             "component_type": component_type
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Enhanced search error: {str(e)}")
 
@@ -409,8 +408,9 @@ async def list_components(
         /list?type=GPU&limit=10&category=consumer
     """
     try:
-        components = db.get_top_components(type.upper(), limit * 2, category)  # Get 2x to account for filtering
-        
+        # Get 2x to account for filtering
+        components = db.get_top_components(type.upper(), limit * 2, category)
+
         # Runtime filter to exclude mobile/laptop components
         if category == "consumer":
             components = [
@@ -690,13 +690,15 @@ async def analyze_cpu_gpu_pairing(request: PairingAnalysisRequest):
             if enable_suggestions:
                 similar = db.search_enhanced(request.cpu, "CPU")[:max_suggestions]
                 suggestions = [s["name"] for s in similar] if similar else []
+                msg = (f"Did you mean: {', '.join(suggestions[:2])}"
+                       if suggestions else "Try a different search")
                 raise HTTPException(
                     status_code=404,
                     detail={
                         "error": "CPU not found",
                         "query": request.cpu,
                         "suggestions": suggestions,
-                        "message": f"Did you mean: {', '.join(suggestions[:2])}" if suggestions else "Try a different search"
+                        "message": msg
                     }
                 )
             else:
@@ -711,13 +713,15 @@ async def analyze_cpu_gpu_pairing(request: PairingAnalysisRequest):
             if enable_suggestions:
                 similar = db.search_enhanced(request.gpu, "GPU")[:max_suggestions]
                 suggestions = [s["name"] for s in similar] if similar else []
+                msg = (f"Did you mean: {', '.join(suggestions[:2])}"
+                       if suggestions else "Try a different search")
                 raise HTTPException(
                     status_code=404,
                     detail={
                         "error": "GPU not found",
                         "query": request.gpu,
                         "suggestions": suggestions,
-                        "message": f"Did you mean: {', '.join(suggestions[:2])}" if suggestions else "Try a different search"
+                        "message": msg
                     }
                 )
             else:
@@ -1022,15 +1026,16 @@ async def estimate_performance(
             )
 
         # Build performance estimates (use normalized score 0-100)
+        ns = result['normalized_score']
         estimated_performance = {
-            "1080p_low": f"{estimate_fps(result['normalized_score'], '1080p', 'low', 'balanced')}+ FPS",
-            "1080p_medium": f"{estimate_fps(result['normalized_score'], '1080p', 'medium', 'balanced')}+ FPS",
-            "1080p_high": f"{estimate_fps(result['normalized_score'], '1080p', 'high', 'balanced')}+ FPS",
-            "1080p_ultra": f"{estimate_fps(result['normalized_score'], '1080p', 'ultra', 'balanced')}+ FPS",
-            "1440p_high": f"{estimate_fps(result['normalized_score'], '1440p', 'high', 'balanced')}+ FPS",
-            "1440p_ultra": f"{estimate_fps(result['normalized_score'], '1440p', 'ultra', 'balanced')}+ FPS",
-            "4K_high": f"{estimate_fps(result['normalized_score'], '4K', 'high', 'balanced')}+ FPS",
-            "4K_ultra": f"{estimate_fps(result['normalized_score'], '4K', 'ultra', 'balanced')}+ FPS",
+            "1080p_low": f"{estimate_fps(ns, '1080p', 'low', 'balanced')}+ FPS",
+            "1080p_medium": f"{estimate_fps(ns, '1080p', 'medium', 'balanced')}+ FPS",
+            "1080p_high": f"{estimate_fps(ns, '1080p', 'high', 'balanced')}+ FPS",
+            "1080p_ultra": f"{estimate_fps(ns, '1080p', 'ultra', 'balanced')}+ FPS",
+            "1440p_high": f"{estimate_fps(ns, '1440p', 'high', 'balanced')}+ FPS",
+            "1440p_ultra": f"{estimate_fps(ns, '1440p', 'ultra', 'balanced')}+ FPS",
+            "4K_high": f"{estimate_fps(ns, '4K', 'high', 'balanced')}+ FPS",
+            "4K_ultra": f"{estimate_fps(ns, '4K', 'ultra', 'balanced')}+ FPS",
         }
 
         # Gaming tiers
@@ -1054,7 +1059,8 @@ async def estimate_performance(
             tier=result["tier"],
             estimated_performance=estimated_performance,
             gaming_tiers=gaming_tiers,
-            note="Estimates based on synthetic benchmarks and real-world correlations. Actual performance varies by game optimization.",
+            note=("Estimates based on synthetic benchmarks and real-world "
+                  "correlations. Actual performance varies by game optimization."),
         )
 
     except HTTPException:
@@ -1114,14 +1120,14 @@ async def power_analysis_endpoint(request: PairingAnalysisRequest):
 
         # Perform power analysis
         power_data = estimate_system_power(cpu_result, gpu_result)
-        
+
         # Add cost estimates (default 4 hours/day, $0.15/kWh)
         gaming_power_cost = calculate_monthly_cost(
             power_data["estimated_gaming_power"],
             hours_per_day=4.0,
             cost_per_kwh=0.15
         )
-        
+
         idle_power_cost = calculate_monthly_cost(
             power_data["estimated_idle_power"],
             hours_per_day=20.0,  # 20 hours idle per day
@@ -1156,13 +1162,13 @@ async def power_analysis_endpoint(request: PairingAnalysisRequest):
                 "gaming": gaming_power_cost,
                 "idle": idle_power_cost,
                 "combined_monthly_usd": round(
-                    gaming_power_cost["monthly_cost_usd"] + 
-                    idle_power_cost["monthly_cost_usd"], 
+                    gaming_power_cost["monthly_cost_usd"]
+                    + idle_power_cost["monthly_cost_usd"],
                     2
                 ),
                 "combined_yearly_usd": round(
-                    gaming_power_cost["yearly_cost_usd"] + 
-                    idle_power_cost["yearly_cost_usd"], 
+                    gaming_power_cost["yearly_cost_usd"]
+                    + idle_power_cost["yearly_cost_usd"],
                     2
                 ),
             },
