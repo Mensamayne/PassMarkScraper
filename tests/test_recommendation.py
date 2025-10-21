@@ -52,28 +52,40 @@ def test_check_tier_compatibility():
 
 def test_check_score_balance():
     """Test score balance checking."""
-    cpu_high = {"normalized_score": 80}
-    gpu_mid = {"normalized_score": 50}
+    cpu_high = {"passmark_score": 50000}
+    gpu_mid = {"passmark_score": 30000}
 
-    # Test balanced category (max 30 diff) - exactly at limit is OK
+    # Test balanced category (ratio ~1.67)
     balanced, weak, score = check_score_balance(cpu_high, gpu_mid, "balanced")
-    assert balanced is True  # 30 diff is exactly at limit
+    assert balanced is True  # Good ratio for balanced
 
-    # Test with bigger difference
-    gpu_low = {"normalized_score": 40}
+    # Test with extreme difference (ratio ~0.5)
+    gpu_low = {"passmark_score": 10000}
     balanced, weak, score = check_score_balance(cpu_high, gpu_low, "balanced")
-    assert balanced is False  # 40 diff exceeds limit of 30
+    assert balanced is False  # Bad ratio
 
-    # Test simulation (max 60 diff)
+    # Test simulation (CPU can be much stronger)
     balanced, weak, score = check_score_balance(cpu_high, gpu_mid, "simulation")
-    assert balanced is True  # 30 diff is OK for simulation
+    assert balanced is True  # Good ratio for simulation
 
 
 def test_calculate_balance_score():
     """Test balance score calculation."""
     # Good pairing
-    cpu = {"normalized_score": 75, "tier": "high", "cores": 8, "threads": 16}
-    gpu = {"normalized_score": 70, "tier": "high", "memory_size": 12}
+    cpu = {
+        "passmark_score": 50000,
+        "normalized_score": 80,
+        "tier": "high",
+        "cores": 8,
+        "threads": 16,
+        "single_thread_rating": 4000,
+    }
+    gpu = {
+        "passmark_score": 30000,
+        "normalized_score": 70,
+        "tier": "high",
+        "memory_size": 12,
+    }
 
     score = calculate_balance_score(cpu, gpu, "balanced")
     assert isinstance(score, int)
@@ -81,7 +93,12 @@ def test_calculate_balance_score():
     assert score > 70  # Should be good score
 
     # Bad pairing - huge difference
-    weak_gpu = {"normalized_score": 10, "tier": "low", "memory_size": 2}
+    weak_gpu = {
+        "passmark_score": 5000,
+        "normalized_score": 10,
+        "tier": "low",
+        "memory_size": 2,
+    }
     score = calculate_balance_score(cpu, weak_gpu, "aaa_gpu")
     assert score < 40  # Should be poor score
 
@@ -89,21 +106,21 @@ def test_calculate_balance_score():
 def test_detect_bottleneck():
     """Test bottleneck detection."""
     # Balanced setup
-    cpu = {"normalized_score": 70}
-    gpu = {"normalized_score": 70}
+    cpu = {"passmark_score": 40000}
+    gpu = {"passmark_score": 25000}
 
     bottleneck = detect_bottleneck(cpu, gpu, "balanced")
     assert bottleneck is None  # No bottleneck
 
     # GPU MUCH stronger (extreme case)
-    cpu_weak = {"normalized_score": 30}
-    strong_gpu = {"normalized_score": 95}
+    cpu_weak = {"passmark_score": 10000}
+    strong_gpu = {"passmark_score": 40000}
     bottleneck = detect_bottleneck(cpu_weak, strong_gpu, "aaa_gpu")
     assert bottleneck in ["cpu_bottleneck", "slight_cpu"]
 
     # CPU much stronger
-    strong_cpu = {"normalized_score": 95}
-    weak_gpu = {"normalized_score": 20}
+    strong_cpu = {"passmark_score": 60000}
+    weak_gpu = {"passmark_score": 10000}
     bottleneck = detect_bottleneck(strong_cpu, weak_gpu, "esport")
     # E-sport is CPU-heavy so GPU bottleneck might not be severe
     assert bottleneck in [None, "gpu_bottleneck", "slight_gpu"]
@@ -113,6 +130,7 @@ def test_analyze_pairing():
     """Test complete pairing analysis."""
     cpu = {
         "name": "Test CPU",
+        "passmark_score": 45000,
         "normalized_score": 75,
         "tier": "high",
         "cores": 8,
@@ -121,6 +139,7 @@ def test_analyze_pairing():
     }
     gpu = {
         "name": "Test GPU",
+        "passmark_score": 30000,
         "normalized_score": 70,
         "tier": "high",
         "memory_size": 12,
@@ -172,6 +191,7 @@ def test_extreme_mismatch():
     # Threadripper + GTX 1030 scenario
     threadripper = {
         "name": "Threadripper 5995WX",
+        "passmark_score": 80000,
         "normalized_score": 100,
         "tier": "ultra",
         "cores": 64,
@@ -180,6 +200,7 @@ def test_extreme_mismatch():
     }
     gtx1030 = {
         "name": "GTX 1030",
+        "passmark_score": 2000,
         "normalized_score": 8,
         "tier": "low",
         "memory_size": 2,
@@ -199,6 +220,7 @@ def test_i3_with_rtx4090():
     """Test i3 + RTX 4090 extreme mismatch."""
     i3 = {
         "name": "i3-12100F",
+        "passmark_score": 12000,
         "normalized_score": 25,
         "tier": "low",
         "cores": 4,
@@ -207,6 +229,7 @@ def test_i3_with_rtx4090():
     }
     rtx4090 = {
         "name": "RTX 4090",
+        "passmark_score": 38156,
         "normalized_score": 100,
         "tier": "ultra",
         "memory_size": 24,
@@ -233,6 +256,7 @@ def test_balanced_mid_tier_pairing():
     """Test balanced mid-tier pairing."""
     ryzen5 = {
         "name": "Ryzen 5 7600",
+        "passmark_score": 25000,
         "normalized_score": 45,
         "tier": "mid",
         "cores": 6,
@@ -241,6 +265,7 @@ def test_balanced_mid_tier_pairing():
     }
     rtx4060 = {
         "name": "RTX 4060",
+        "passmark_score": 20000,
         "normalized_score": 40,
         "tier": "mid",
         "memory_size": 8,

@@ -6,11 +6,7 @@ from app.gaming_profiles import (
     GAME_CATEGORIES,
     CATEGORY_MINIMUM_REQUIREMENTS,
     MAX_TIER_DIFFERENCE,
-    MAX_SCORE_DIFFERENCE,
     TIER_VALUES,
-    get_bottleneck_threshold,
-    estimate_fps,
-    get_performance_tier_for_resolution,
 )
 from app.config_loader import config
 from app.filters import is_desktop_component
@@ -56,28 +52,32 @@ def check_minimum_requirements(
         cpu_score = cpu.get("normalized_score", 0)
         if cpu_score < min_reqs["min_cpu_score"]:
             issues.append(
-                f"CPU score ({cpu_score}) below minimum ({min_reqs['min_cpu_score']}) for {category_name}"
+                f"CPU score ({cpu_score}) below minimum "
+                f"({min_reqs['min_cpu_score']}) for {category_name}"
             )
 
     if "min_cpu_cores" in min_reqs:
         cpu_cores = cpu.get("cores", 0)
         if cpu_cores and cpu_cores < min_reqs["min_cpu_cores"]:
             issues.append(
-                f"CPU has only {cpu_cores} cores, {category_name} needs {min_reqs['min_cpu_cores']}+"
+                f"CPU has only {cpu_cores} cores, {category_name} needs "
+                f"{min_reqs['min_cpu_cores']}+"
             )
 
     if "min_cpu_threads" in min_reqs:
         cpu_threads = cpu.get("threads", 0)
         if cpu_threads and cpu_threads < min_reqs["min_cpu_threads"]:
             issues.append(
-                f"CPU has only {cpu_threads} threads, {category_name} needs {min_reqs['min_cpu_threads']}+"
+                f"CPU has only {cpu_threads} threads, {category_name} needs "
+                f"{min_reqs['min_cpu_threads']}+"
             )
 
     if "min_cpu_single_thread" in min_reqs:
         cpu_st = cpu.get("single_thread_rating", 0)
         if cpu_st and cpu_st < min_reqs["min_cpu_single_thread"]:
             issues.append(
-                f"CPU single-thread ({cpu_st}) below minimum ({min_reqs['min_cpu_single_thread']})"
+                f"CPU single-thread ({cpu_st}) below minimum "
+                f"({min_reqs['min_cpu_single_thread']})"
             )
 
     # Check GPU requirements
@@ -85,14 +85,16 @@ def check_minimum_requirements(
         gpu_score = gpu.get("normalized_score", 0)
         if gpu_score < min_reqs["min_gpu_score"]:
             issues.append(
-                f"GPU score ({gpu_score}) below minimum ({min_reqs['min_gpu_score']}) for {category_name}"
+                f"GPU score ({gpu_score}) below minimum "
+                f"({min_reqs['min_gpu_score']}) for {category_name}"
             )
 
     if "min_gpu_memory" in min_reqs:
         gpu_mem = gpu.get("memory_size", 0)
         if gpu_mem and gpu_mem < min_reqs["min_gpu_memory"]:
             issues.append(
-                f"GPU has only {gpu_mem}GB VRAM, {category_name} needs {min_reqs['min_gpu_memory']}GB+"
+                f"GPU has only {gpu_mem}GB VRAM, {category_name} needs "
+                f"{min_reqs['min_gpu_memory']}GB+"
             )
 
     return len(issues) == 0, issues
@@ -145,7 +147,7 @@ def check_score_balance(
 ) -> Tuple[bool, Optional[str], Optional[int]]:
     """
     Check if score difference is acceptable using passmark scores.
-    
+
     Uses actual PassMark scores instead of normalized (0-100) to properly differentiate
     between high-end components that would all have normalized_score=100.
 
@@ -159,7 +161,7 @@ def check_score_balance(
     """
     cpu_score = cpu.get("passmark_score", 0)
     gpu_score = gpu.get("passmark_score", 0)
-    
+
     if cpu_score == 0 or gpu_score == 0:
         return True, None, None
 
@@ -167,7 +169,7 @@ def check_score_balance(
     category = GAME_CATEGORIES.get(category_name, {})
     cpu_importance = category.get("cpu_importance", 0.5)
     gpu_importance = category.get("gpu_importance", 0.5)
-    
+
     # Calculate ratio (accounts for different scales: CPU ~70k max, GPU ~42k max)
     # For balanced categories, expect ~1.5-1.8 ratio (CPU typically higher)
     # Adjust expected ratio based on category importance
@@ -183,13 +185,13 @@ def check_score_balance(
         # Balanced: moderate ratio
         expected_ratio = 1.7  # CPU ~1.7x GPU score
         tolerance = 0.5
-    
+
     actual_ratio = cpu_score / gpu_score if gpu_score > 0 else 999
-    
+
     # Check if ratio is within tolerance
     if abs(actual_ratio - expected_ratio) <= tolerance:
         return True, None, None
-    
+
     # Determine weak component
     if actual_ratio < (expected_ratio - tolerance):
         # CPU too weak relative to GPU
@@ -223,21 +225,21 @@ def calculate_balance_score(cpu: Dict, gpu: Dict, category_name: str) -> int:
 
     # 3. Check score balance using passmark scores
     score_ok, _, _ = check_score_balance(cpu, gpu, category_name)
-    
+
     cpu_passmark = cpu.get("passmark_score", 0)
     gpu_passmark = gpu.get("passmark_score", 0)
-    
+
     if cpu_passmark == 0 or gpu_passmark == 0:
         return 50  # Unknown, give medium score
-    
+
     # Get category weights
     category = GAME_CATEGORIES.get(category_name, {})
     cpu_importance = category.get("cpu_importance", 0.5)
     gpu_importance = category.get("gpu_importance", 0.5)
-    
+
     # Calculate ratio and compare to expected ratio
     actual_ratio = cpu_passmark / gpu_passmark
-    
+
     # Expected ratio based on category (CPU ~70k max, GPU ~42k max = ~1.7 for balanced)
     if cpu_importance > gpu_importance:
         expected_ratio = 2.2  # CPU-heavy
@@ -248,10 +250,10 @@ def calculate_balance_score(cpu: Dict, gpu: Dict, category_name: str) -> int:
     else:
         expected_ratio = 1.7  # Balanced
         tolerance = 0.5
-    
+
     # Calculate how close to ideal ratio (0 = perfect)
     ratio_deviation = abs(actual_ratio - expected_ratio)
-    
+
     # Convert deviation to score (0 deviation = 100, max tolerance = 80, beyond = lower)
     if ratio_deviation <= tolerance:
         # Within tolerance: 80-100 score
@@ -260,18 +262,18 @@ def calculate_balance_score(cpu: Dict, gpu: Dict, category_name: str) -> int:
         # Beyond tolerance: 0-80 score
         extra_deviation = ratio_deviation - tolerance
         ratio_score = max(0, 80 - (extra_deviation * 30))
-    
+
     # Normalize component scores to 0-100 scale for weighting
     # Use rough maximums: CPU ~70k, GPU ~42k
     cpu_normalized = min(100, (cpu_passmark / 70000) * 100)
     gpu_normalized = min(100, (gpu_passmark / 42000) * 100)
-    
+
     # Calculate absolute performance score (how powerful the setup is)
     performance_score = (cpu_normalized * cpu_importance + gpu_normalized * gpu_importance)
-    
+
     # Final balance score: 60% ratio balance + 40% absolute performance
     balance_score = round(ratio_score * 0.6 + performance_score * 0.4)
-    
+
     return min(100, max(0, balance_score))
 
 
@@ -291,26 +293,23 @@ def detect_bottleneck(cpu: Dict, gpu: Dict, category_name: str) -> Optional[str]
 
     # Calculate ratio (CPU/GPU) - typically ~1.4-2.2 for balanced systems
     ratio = cpu_score / gpu_score
-    
+
     # Get category importance
     category = GAME_CATEGORIES.get(category_name, {})
     cpu_importance = category.get("cpu_importance", 0.5)
     gpu_importance = category.get("gpu_importance", 0.5)
-    
+
     # Determine expected ratio and thresholds based on category
     if cpu_importance > gpu_importance:
         # CPU-heavy: expect higher ratio, CPU should be stronger
-        ideal_ratio = 2.2
         cpu_bottleneck_threshold = 1.2  # Below 1.2 = CPU too weak
         gpu_bottleneck_threshold = 3.2  # Above 3.2 = GPU too weak
     elif gpu_importance > cpu_importance:
         # GPU-heavy: expect lower ratio, GPU should be stronger
-        ideal_ratio = 1.4
         cpu_bottleneck_threshold = 0.9  # Below 0.9 = CPU too weak
         gpu_bottleneck_threshold = 2.0  # Above 2.0 = GPU too weak
     else:
         # Balanced: moderate ratio
-        ideal_ratio = 1.7
         cpu_bottleneck_threshold = 1.0  # Below 1.0 = CPU too weak
         gpu_bottleneck_threshold = 2.5  # Above 2.5 = GPU too weak
 
@@ -321,7 +320,7 @@ def detect_bottleneck(cpu: Dict, gpu: Dict, category_name: str) -> Optional[str]
             return "cpu_bottleneck"
         else:
             return "slight_cpu"
-    
+
     elif ratio > gpu_bottleneck_threshold:
         # GPU much weaker than CPU for this category
         if ratio > gpu_bottleneck_threshold * 1.3:
@@ -346,13 +345,13 @@ def calculate_utilization(cpu: Dict, gpu: Dict, category_name: str) -> Dict[str,
 
     cpu_score = cpu.get("passmark_score", 0)
     gpu_score = gpu.get("passmark_score", 0)
-    
+
     if cpu_score == 0 or gpu_score == 0:
         return {"cpu": 50, "gpu": 50}
 
     # Calculate ratio
     ratio = cpu_score / gpu_score
-    
+
     # Determine expected ratio for this category
     if cpu_importance > gpu_importance:
         expected_ratio = 2.2
@@ -461,13 +460,15 @@ def analyze_pairing(cpu: Dict, gpu: Dict) -> Dict:
         weighted_sum += score * weight
         weight_total += weight
 
-    analysis["overall_balance_score"] = round(weighted_sum / weight_total) if weight_total > 0 else 0
+    analysis["overall_balance_score"] = (
+        round(weighted_sum / weight_total) if weight_total > 0 else 0
+    )
     analysis["overall_verdict"] = get_overall_verdict(analysis["balance_scores"])
 
     # Detect overall bottleneck using passmark scores
     cpu_score = cpu.get("passmark_score", 0)
     gpu_score = gpu.get("passmark_score", 0)
-    
+
     if cpu_score > 0 and gpu_score > 0:
         ratio = cpu_score / gpu_score
         # General threshold: expect ratio ~1.4-2.2, outside means imbalance
@@ -514,17 +515,17 @@ def recommend_components(
     for c in all_components:
         if c.get("component_type") != recommend_type:
             continue
-        
+
         # Check category from database
         db_category = c.get("category", "consumer")
         if db_category in ["server", "workstation"]:
             continue
-            
+
         # Double-check name for mobile/laptop indicators
         if not is_desktop_component(c.get("name", ""), recommend_type):
             print(f"DEBUG: Filtered out {c.get('name', 'Unknown')} - not desktop component")
             continue
-            
+
         candidates.append(c)
 
     # Calculate match scores
@@ -556,11 +557,11 @@ def recommend_components(
             weight_total += cat_data["weight"]
 
         match_score = round(weighted_sum / weight_total) if weight_total > 0 else 0
-        
+
         # Add bonus for good passmark ratio match
         cpu_passmark = cpu.get("passmark_score", 0)
         gpu_passmark = gpu.get("passmark_score", 0)
-        
+
         if cpu_passmark > 0 and gpu_passmark > 0:
             ratio = cpu_passmark / gpu_passmark
             # Bonus for ratio close to ideal (1.4-2.2 range)
@@ -580,12 +581,15 @@ def recommend_components(
             )
         else:
             # Debug: log rejected candidates
-            print(f"DEBUG: Rejected {candidate.get('name', 'Unknown')} - match_score: {match_score}, min_required: {MIN_MATCH_SCORE}")
+            print(
+                f"DEBUG: Rejected {candidate.get('name', 'Unknown')} - "
+                f"match_score: {match_score}, min_required: {MIN_MATCH_SCORE}"
+            )
 
     # Sort by match score (profile fit), then by passmark ratio compatibility
     # If game_focus is specified, prioritize match_score; otherwise prioritize good ratio
     base_passmark = base_component.get("passmark_score", 0)
-    
+
     if game_focus:
         # Profile-focused: match_score is primary, passmark ratio is secondary
         def sort_key_focused(x):
@@ -618,4 +622,3 @@ def recommend_components(
     # Apply limit (use config default if limit exceeds it)
     effective_limit = min(limit, MAX_RECOMMENDATIONS * 2)  # Allow 2x for flexibility
     return recommendations[:effective_limit]
-
